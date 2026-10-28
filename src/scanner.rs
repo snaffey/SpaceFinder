@@ -216,10 +216,10 @@ pub fn scan(
     let started = Instant::now();
     let root = root
         .canonicalize()
-        .map_err(|e| format!("Não foi possível abrir a pasta: {e}"))?;
+        .map_err(|e| format!("Could not open the folder: {e}"))?;
     let root_metadata = root.metadata().map_err(|e| e.to_string())?;
     if !root_metadata.is_dir() {
-        return Err("Escolhe uma pasta ou uma unidade de disco.".into());
+        return Err("Choose a folder or disk drive.".into());
     }
     let workers = workers.clamp(1, 64);
     let mut scan = Scan {
@@ -303,7 +303,7 @@ pub fn scan(
                     let extension = Path::new(&entry.name)
                         .extension()
                         .map(|e| e.to_string_lossy().to_lowercase())
-                        .unwrap_or_else(|| "sem extensão".into());
+                        .unwrap_or_else(|| "no extension".into());
                     let summary = scan.extensions.entry(extension).or_default();
                     summary.bytes += entry.size;
                     summary.files += 1;
@@ -367,9 +367,7 @@ pub fn start(root: PathBuf, workers: usize) -> (Receiver<Event>, Arc<AtomicBool>
                 let _ = tx.send(Event::Progress(value));
             })
         }))
-        .unwrap_or_else(|_| {
-            Err("O worker terminou inesperadamente. Tenta analisar novamente.".into())
-        });
+        .unwrap_or_else(|_| Err("The worker stopped unexpectedly. Try scanning again.".into()));
         let _ = tx.send(Event::Finished(result));
     });
     (rx, cancel)

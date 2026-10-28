@@ -4,7 +4,7 @@ use std::{path::PathBuf, sync::atomic::AtomicBool};
 pub fn run(args: &[std::ffi::OsString]) -> Result<(), String> {
     let path = args
         .get(1)
-        .ok_or("Falta a pasta. Exemplo: spacefinder --scan C:\\Users --json")?;
+        .ok_or("Missing folder. Example: spacefinder-cli --scan C:\\Users --json")?;
     let mut workers = scanner::default_workers();
     let mut json = false;
     let mut recommend = false;
@@ -20,13 +20,10 @@ pub fn run(args: &[std::ffi::OsString]) -> Result<(), String> {
                     .and_then(|v| v.to_str())
                     .and_then(|v| v.parse().ok())
                     .filter(|v| (1..=64).contains(v))
-                    .ok_or("--threads deve ser entre 1 e 64")?;
+                    .ok_or("--threads must be between 1 and 64")?;
             }
             _ => {
-                return Err(format!(
-                    "Opção desconhecida: {}",
-                    args[index].to_string_lossy()
-                ));
+                return Err(format!("Unknown option: {}", args[index].to_string_lossy()));
             }
         }
         index += 1;
@@ -63,7 +60,7 @@ pub fn run(args: &[std::ffi::OsString]) -> Result<(), String> {
         );
     } else {
         println!(
-            "{}\n{} | {} ficheiros | {} pastas | {:.3}s | {} workers\n{} erros | {} ligações/reparse ignorados\n",
+            "{}\n{} | {} files | {} folders | {:.3}s | {} workers\n{} errors | {} links/reparse points skipped\n",
             platform::display_path(&result.root),
             human_size(result.progress.bytes),
             result.progress.files,
@@ -84,12 +81,12 @@ pub fn run(args: &[std::ffi::OsString]) -> Result<(), String> {
         }
         if let Some(report) = &report {
             println!(
-                "\nRecomendações: {} · tamanhos lógicos para rever, sem limpeza automática",
+                "\nRecommendations: {} · logical sizes to review, no automatic cleanup",
                 report.items.len()
             );
             for item in &report.items {
                 println!(
-                    "\n{}  {}\n{}\n{}\nAntes de remover: {}",
+                    "\n{}  {}\n{}\n{}\nBefore removing: {}",
                     human_size(item.bytes),
                     item.title,
                     platform::display_path(&result.path(item.node)),

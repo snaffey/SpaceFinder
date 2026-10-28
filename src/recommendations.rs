@@ -256,15 +256,15 @@ fn generated(scan: &Scan, index: usize, context: Context, name: &str) -> Option<
     }
     let (title, reason, caution) = if name == "target" && cargo_output(scan, index) {
         (
-            "Saída de compilação Rust",
-            "Existe Cargo.toml na pasta superior, marcadores Cargo e perfis de compilação na pasta target.",
-            "Confirma que podes recompilar e que não guardaste ficheiros manuais aqui. Fecha builds e aplicações que usem os binários. Prefere cargo clean no projeto; a próxima compilação será mais lenta e pode precisar de rede.",
+            "Rust build output",
+            "Cargo.toml exists in the parent folder, with Cargo markers and build profiles in the target folder.",
+            "Confirm that you can rebuild and have not stored manual files here. Close builds and applications using these binaries. Prefer cargo clean in the project; the next build will be slower and may require network access.",
         )
     } else if name == ".next" && next_output(scan, index) {
         (
-            "Saída de compilação Next.js",
-            "Existe package.json na pasta superior e foram encontrados server, build-manifest.json e um marcador de build dentro de .next.",
-            "Confirma que é um projeto de desenvolvimento parado, que só contém dados gerados e que podes voltar a compilar. next start usa estes ficheiros para servir a aplicação; apagá-los pode parar um site em produção.",
+            "Next.js build output",
+            "package.json exists in the parent folder, and server, build-manifest.json and a build marker were found inside .next.",
+            "Confirm that this is a stopped development project, contains only generated data and can be rebuilt. next start uses these files to serve the application; deleting them may stop a production site.",
         )
     } else {
         return None;
@@ -280,14 +280,14 @@ fn generated(scan: &Scan, index: usize, context: Context, name: &str) -> Option<
     };
     if context.cloud {
         recommendation.category = Category::Review;
-        recommendation.caution.push_str(" A localização sugere sincronização cloud: eliminar pode propagar-se à cloud e a outros dispositivos. Revê a sincronização e prefere a opção de libertar espaço do respetivo cliente.");
+        recommendation.caution.push_str(" The location suggests cloud synchronization: deletion may propagate to the cloud and other devices. Review synchronization and prefer the client's free-up-space option.");
     }
     if node.incomplete {
         recommendation.category = Category::Review;
         recommendation
             .reason
-            .push_str(" A leitura deste ramo ficou incompleta.");
-        recommendation.caution.push_str(" Há itens sem acesso ou por analisar: completa a análise e revê todo o conteúdo antes de decidir.");
+            .push_str(" This branch was not fully scanned.");
+        recommendation.caution.push_str(" Some items were inaccessible or not scanned: complete the scan and review all contents before deciding.");
     }
     Some(recommendation)
 }
@@ -298,28 +298,28 @@ fn windows_cleanup(index: usize, node: &Node, location: Location) -> Option<Reco
     }
     let (title, reason, caution, action) = match location {
         Location::Temp if node.bytes >= 16 * MIB => (
-            "Temporários: usar a limpeza do Windows",
-            "Foi encontrada uma localização padrão de temporários do Windows com dados medidos.",
-            "Usa as recomendações de limpeza do Windows e revê as categorias. Não apagues a pasta inteira manualmente: pode conter ficheiros em uso.",
+            "Temporary files: use Windows cleanup",
+            "A standard Windows temporary-files location with measured data was found.",
+            "Use Windows cleanup recommendations and review the categories. Do not delete the entire folder manually: it may contain files in use.",
             Action::StorageSettings,
         ),
         Location::Recycle => (
-            "Rever a Reciclagem",
-            "Foram medidos itens dentro da Reciclagem desta unidade.",
-            "Abre a Reciclagem e confirma que não precisas de restaurar nada. Esvaziá-la elimina definitivamente o conteúdo; esta análise não faz essa ação.",
+            "Review the Recycle Bin",
+            "Items were measured in this drive's Recycle Bin.",
+            "Open the Recycle Bin and confirm that nothing needs restoring. Emptying it permanently deletes its contents; this scan does not perform that action.",
             Action::RecycleBin,
         ),
         Location::OldWindows if node.bytes >= 16 * MIB => (
-            "Instalação anterior do Windows",
-            "Foi encontrada Windows.old na raiz da unidade.",
-            "Utiliza a limpeza do Windows, não a eliminação direta. Remover a instalação anterior pode impedir voltar à versão anterior do Windows.",
+            "Previous Windows installation",
+            "Windows.old was found at the drive root.",
+            "Use Windows cleanup rather than deleting directly. Removing the previous installation may prevent rolling back to the previous Windows version.",
             Action::StorageSettings,
         ),
         _ => return None,
     };
     let mut caution = caution.to_owned();
     if node.incomplete {
-        caution.push_str(" A análise deste ramo é parcial; o valor apresentado inclui apenas os bytes que foi possível medir.");
+        caution.push_str(" This branch was partially scanned; the displayed value includes only bytes that could be measured.");
     }
     Some(Recommendation {
         node: index,
@@ -353,20 +353,20 @@ fn personal_review(
         return None;
     }
     let reason = if old_download {
-        "Está numa pasta de transferências, tem pelo menos 128 MiB e não foi modificado há pelo menos 90 dias. Isso não prova que deixou de ser necessário."
+        "Located in a downloads folder, at least 128 MiB in size and not modified for at least 90 days. This does not prove it is no longer needed."
     } else {
-        "É um ficheiro com pelo menos 512 MiB numa localização habitualmente pessoal. O tamanho, por si só, não indica que pode ser removido."
+        "A file of at least 512 MiB in a typically personal location. Size alone does not indicate that it can be removed."
     };
-    let mut caution = "Não é lixo identificado. Confirma o conteúdo, a utilidade e se é uma cópia única ou um backup. A data de acesso não é usada como prova de desuso.".to_owned();
+    let mut caution = "This is not confirmed junk. Check its contents, usefulness and whether it is a unique copy or a backup. Last-access time is not used as evidence of disuse.".to_owned();
     if context.cloud {
-        caution.push_str(" A localização sugere sincronização cloud: eliminar pode remover também a cópia online. Para libertar apenas espaço local, usa o cliente de sincronização.");
+        caution.push_str(" The location suggests cloud synchronization: deleting may also remove the online copy. To free local space only, use the synchronization client.");
     }
     Some(Recommendation {
         node: index,
         title: if old_download {
-            "Transferência antiga para rever"
+            "Old download to review"
         } else {
-            "Ficheiro pessoal volumoso"
+            "Large personal file"
         }
         .into(),
         reason: reason.into(),
@@ -585,7 +585,7 @@ mod tests {
         let report = analyze(&f.scan, NOW);
         assert_eq!(report.items.len(), 1);
         assert_eq!(report.items[0].category, Category::Regenerable);
-        assert!(report.items[0].caution.contains("produção"));
+        assert!(report.items[0].caution.contains("production"));
         f.add(next, "private-backup.zip", false, 1);
         assert!(analyze(&f.scan, NOW).items.is_empty());
     }

@@ -49,7 +49,9 @@ impl SpaceFinder {
         let ctx = ctx.clone();
         std::thread::spawn(move || {
             let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(task))
-                .unwrap_or_else(|_| Err("O Windows não concluiu a ação. Tenta novamente.".into()));
+                .unwrap_or_else(
+                    |_| Err("Windows could not complete the action. Try again.".into()),
+                );
             let _ = tx.send(result);
             ctx.request_repaint();
         });
@@ -73,9 +75,9 @@ impl SpaceFinder {
                     self.path = platform::display_path(&root);
                     self.start();
                     self.resume_after_scan = Some(restore);
-                    self.notice = Some("Item enviado para a Reciclagem. A atualizar a análise… O espaço livre só aumenta quando a Reciclagem for esvaziada.".into());
+                    self.notice = Some("Item moved to the Recycle Bin. Updating the scan… Free space increases only after the Recycle Bin is emptied.".into());
                 }
-                Err(error) => self.notice = Some(format!("Ação não concluída: {error}")),
+                Err(error) => self.notice = Some(format!("Action not completed: {error}")),
             }
         }
     }
@@ -88,7 +90,7 @@ impl SpaceFinder {
             .scan
             .as_ref()
             .map_or_else(|| PathBuf::from(&self.path), |s| s.root.clone());
-        self.start_operation(ctx, "A aguardar autorização do Windows…", move || {
+        self.start_operation(ctx, "Waiting for Windows authorization…", move || {
             actions::elevate(&path)?;
             Ok(OperationDone::Elevated)
         });
@@ -105,10 +107,10 @@ impl SpaceFinder {
         let idle =
             self.operation.is_none() && self.events.is_none() && self.delete_dialog.is_none();
         for (label, value) in [
-            ("Abrir", ItemAction::Open),
-            ("Mostrar no Explorador", ItemAction::Reveal),
-            ("Abrir pasta superior", ItemAction::Parent),
-            ("Propriedades do Windows", ItemAction::Properties),
+            ("Open", ItemAction::Open),
+            ("Show in File Explorer", ItemAction::Reveal),
+            ("Open parent folder", ItemAction::Parent),
+            ("Windows properties", ItemAction::Properties),
         ] {
             if ui.add_enabled(idle, egui::Button::new(label)).clicked() {
                 action = Some(value);
@@ -116,26 +118,26 @@ impl SpaceFinder {
         }
         ui.separator();
         if node.directory {
-            if ui.button("Focar esta pasta na árvore").clicked() {
+            if ui.button("Focus this folder in the tree").clicked() {
                 action = Some(ItemAction::Focus);
             }
-            if ui.button("Expandir / recolher").clicked() {
+            if ui.button("Expand / collapse").clicked() {
                 action = Some(ItemAction::Toggle);
             }
             if ui
-                .add_enabled(idle, egui::Button::new("Analisar esta pasta de novo"))
+                .add_enabled(idle, egui::Button::new("Rescan this folder"))
                 .clicked()
             {
                 action = Some(ItemAction::Analyse);
             }
             ui.separator();
         }
-        ui.menu_button("Copiar", |ui| {
+        ui.menu_button("Copy", |ui| {
             for (label, value) in [
-                ("Nome", ItemAction::CopyName),
-                ("Caminho completo", ItemAction::CopyPath),
-                ("Caminho da pasta superior", ItemAction::CopyParent),
-                ("Tamanho em bytes", ItemAction::CopySize),
+                ("Name", ItemAction::CopyName),
+                ("Full path", ItemAction::CopyPath),
+                ("Parent folder path", ItemAction::CopyParent),
+                ("Size in bytes", ItemAction::CopySize),
             ] {
                 if ui.button(label).clicked() {
                     action = Some(value);
@@ -146,13 +148,12 @@ impl SpaceFinder {
         let delete = ui.add_enabled(
             idle && index != 0,
             egui::Button::new(
-                RichText::new("Eliminar para a Reciclagem…")
-                    .color(Color32::from_rgb(246, 153, 150)),
+                RichText::new("Move to Recycle Bin…").color(Color32::from_rgb(246, 153, 150)),
             ),
         );
         if index == 0 {
             delete.on_hover_text(
-                "A raiz da análise está protegida. Analisa a pasta superior para gerir este item.",
+                "The scan root is protected. Scan the parent folder to manage this item.",
             );
         } else if delete.clicked() {
             action = Some(ItemAction::Recycle);
@@ -185,7 +186,7 @@ impl SpaceFinder {
                     }
                     self.refresh();
                 } else {
-                    self.notice = Some("Limpa a pesquisa para recolher ramos.".into());
+                    self.notice = Some("Clear the search to collapse branches.".into());
                 }
             }
             ItemAction::Analyse => {
@@ -206,7 +207,7 @@ impl SpaceFinder {
                                 || current.modified != node.details.modified))
                     {
                         return Err(
-                            "O item mudou desde a análise. Reanalisa antes de eliminar.".into()
+                            "The item has changed since scanning. Rescan before deleting.".into(),
                         );
                     }
                     RecycleRequest::prepare(&scan.root, &path)
@@ -235,7 +236,7 @@ impl SpaceFinder {
                     ItemAction::Reveal => (ShellAction::Reveal, path),
                     _ => (ShellAction::Properties, path),
                 };
-                self.start_operation(ctx, "A abrir no Windows…", move || {
+                self.start_operation(ctx, "Opening in Windows…", move || {
                     actions::shell(action, &path)?;
                     Ok(OperationDone::Shell)
                 });
@@ -252,28 +253,28 @@ impl SpaceFinder {
         let mut cancel = false;
         let response = egui::Modal::new(egui::Id::new("recycle-confirmation")).show(ctx, |ui| {
             ui.set_width(480.0);
-            ui.heading("Enviar para a Reciclagem?"); ui.add_space(12.0);
-            property(ui, "Item selecionado", &dialog.name);
-            property(ui, "Localização", platform::display_path(dialog.request.path()));
-            ui.label(format!("{} · {} ficheiros na última análise", human_size(dialog.bytes), count(dialog.files)));
+            ui.heading("Move to Recycle Bin?"); ui.add_space(12.0);
+            property(ui, "Selected item", &dialog.name);
+            property(ui, "Location", platform::display_path(dialog.request.path()));
+            ui.label(format!("{} · {} files in the last scan", human_size(dialog.bytes), count(dialog.files)));
             ui.add_space(8.0);
-            ui.label("Podes restaurar o item na Reciclagem do Windows. O espaço livre pode não aumentar até a esvaziares.");
+            ui.label("You can restore the item from the Windows Recycle Bin. Free space may not increase until you empty it.");
             if dialog.request.directory() {
                 ui.add_space(12.0);
-                ui.colored_label(COLORS[3], "A pasta e todo o seu conteúdo serão enviados para a Reciclagem.");
-                ui.label("Escreve o nome da pasta para confirmar:");
+                ui.colored_label(COLORS[3], "The folder and all its contents will be moved to the Recycle Bin.");
+                ui.label("Type the folder name to confirm:");
                 ui.add(egui::TextEdit::singleline(&mut dialog.typed).desired_width(f32::INFINITY).hint_text(&dialog.name));
             }
             ui.add_space(16.0);
             ui.horizontal(|ui| {
-                if ui.button("Cancelar").clicked() { cancel = true; }
+                if ui.button("Cancel").clicked() { cancel = true; }
                 let ready = !dialog.request.directory() || dialog.typed == dialog.name;
-                if ui.add_enabled(ready, egui::Button::new(RichText::new("Enviar para a Reciclagem").color(BG)).fill(Color32::from_rgb(238, 157, 141))).clicked() { confirm = true; }
+                if ui.add_enabled(ready, egui::Button::new(RichText::new("Move to Recycle Bin").color(BG)).fill(Color32::from_rgb(238, 157, 141))).clicked() { confirm = true; }
             });
         });
         if confirm {
             let restore = dialog.request.path().parent().unwrap().to_path_buf();
-            self.start_operation(ctx, "A enviar para a Reciclagem…", move || {
+            self.start_operation(ctx, "Moving to the Recycle Bin…", move || {
                 dialog.request.recycle()?;
                 Ok(OperationDone::Recycled {
                     root: dialog.root,

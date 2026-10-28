@@ -23,8 +23,8 @@ impl SpaceFinder {
         if self.rows.is_empty() {
             empty_result(
                 ui,
-                "Sem correspondências",
-                "Experimenta outro nome ou remove os filtros da tabela.",
+                "No matches",
+                "Try another name or clear the table filters.",
             );
             return;
         }
@@ -48,13 +48,13 @@ impl SpaceFinder {
             if self.columns.path { table = table.column(Column::initial(360.0).clip(true)); }
             if let Some(row) = scroll_to { table = table.scroll_to_row(row, Some(Align::Center)); }
             table.header(32.0, |mut header| {
-                for (title, sort) in [("Nome", Some(Sort::Name)), ("Tamanho", Some(Sort::Size)), ("% da pasta", None), ("Ficheiros", Some(Sort::Files)), ("Pastas", Some(Sort::Folders)), ("Alteração", Some(Sort::Modified))] {
+                for (title, sort) in [("Name", Some(Sort::Name)), ("Size", Some(Sort::Size)), ("% of parent", None), ("Files", Some(Sort::Files)), ("Folders", Some(Sort::Folders)), ("Modified", Some(Sort::Modified))] {
                     header.col(|ui| { if sort_header(ui, title, sort, &self.browser) { sort_clicked = sort; } });
                 }
-                if self.columns.accessed { header.col(|ui| { if sort_header(ui, "Último acesso", Some(Sort::Accessed), &self.browser) { sort_clicked = Some(Sort::Accessed); } }); }
-                if self.columns.created { header.col(|ui| { sort_header(ui, "Criação", None, &self.browser); }); }
-                if self.columns.attributes { header.col(|ui| { sort_header(ui, "Atributos", None, &self.browser); }); }
-                if self.columns.path { header.col(|ui| { sort_header(ui, "Caminho completo", None, &self.browser); }); }
+                if self.columns.accessed { header.col(|ui| { if sort_header(ui, "Last accessed", Some(Sort::Accessed), &self.browser) { sort_clicked = Some(Sort::Accessed); } }); }
+                if self.columns.created { header.col(|ui| { sort_header(ui, "Created", None, &self.browser); }); }
+                if self.columns.attributes { header.col(|ui| { sort_header(ui, "Attributes", None, &self.browser); }); }
+                if self.columns.path { header.col(|ui| { sort_header(ui, "Full path", None, &self.browser); }); }
             }).body(|body| {
                 body.rows(height, self.rows.len(), |mut row| {
                     let visible = self.rows[row.index()]; let index = visible.index; let node = &scan.nodes[index];
@@ -74,7 +74,7 @@ impl SpaceFinder {
                         if node.incomplete {
                             let (rect, response) = ui.allocate_exact_size(Vec2::splat(6.0), Sense::hover());
                             ui.painter().circle_filled(rect.center(), 2.5, COLORS[3]);
-                            response.on_hover_text("Cobertura parcial: este ramo inclui itens sem acesso ou por analisar.");
+                            response.on_hover_text("Partial coverage: this branch includes inaccessible or unscanned items.");
                         }
                         let name = if index == 0 { platform::display_path(&scan.root) } else { node.name.to_string_lossy().into_owned() };
                         let text = RichText::new(name).size(13.0).color(if selected { TEXT } else if node.incomplete { COLORS[3] } else { TEXT });
@@ -92,7 +92,7 @@ impl SpaceFinder {
                     let response = row.response();
                     if response.clicked() || response.secondary_clicked() { selection = Some(index); }
                     if response.double_clicked() && node.directory { toggle = Some(index); }
-                    response.clone().on_hover_text(format!("{}\n{} bytes{}\nAlterado: {}\n{}", platform::display_path(&scan.path(index)), count(node.bytes), if node.incomplete { " · valor parcial" } else { "" }, date(node.details.modified), if node.directory { "Duplo clique para expandir/recolher · botão direito para ações" } else { "Seleciona para consultar os detalhes · botão direito para ações" }));
+                    response.clone().on_hover_text(format!("{}\n{} bytes{}\nModified: {}\n{}", platform::display_path(&scan.path(index)), count(node.bytes), if node.incomplete { " · partial value" } else { "" }, date(node.details.modified), if node.directory { "Double-click to expand/collapse · right-click for actions" } else { "Select to view details · right-click for actions" }));
                     response.context_menu(|ui| { if let Some(action) = self.item_menu(ui, index) { menu_action = Some((index, action)); } });
                 });
             });
@@ -113,7 +113,10 @@ impl SpaceFinder {
                 self.select(index);
                 self.refresh();
             } else {
-                self.notice = Some("Limpa a pesquisa para recolher ramos; os antepassados dos resultados ficam expandidos.".into());
+                self.notice = Some(
+                    "Clear the search to collapse branches; ancestors of matches remain expanded."
+                        .into(),
+                );
             }
         }
         if let Some((index, action)) = menu_action {
@@ -134,7 +137,7 @@ impl SpaceFinder {
         ui.horizontal(|ui| {
             ui.label(
                 RichText::new(format!(
-                    "{} tipos encontrados",
+                    "{} types found",
                     count(self.extension_rows.len() as u64)
                 ))
                 .size(12.0)
@@ -142,7 +145,7 @@ impl SpaceFinder {
             );
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 ui.label(
-                    RichText::new("Duplo clique para explorar os ficheiros")
+                    RichText::new("Double-click to explore files")
                         .size(11.0)
                         .color(MUTED),
                 );
@@ -152,8 +155,8 @@ impl SpaceFinder {
         if self.extension_rows.is_empty() {
             empty_result(
                 ui,
-                "Sem tipos correspondentes",
-                "Limpa o filtro para voltar a ver todas as extensões.",
+                "No matching file types",
+                "Clear the filter to see all extensions again.",
             );
             return;
         }
@@ -176,11 +179,11 @@ impl SpaceFinder {
                     .column(Column::initial(128.0).clip(true))
                     .header(32.0, |mut header| {
                         for (title, sort) in [
-                            ("Extensão", Some(Sort::Name)),
-                            ("Tamanho total", Some(Sort::Size)),
-                            ("% da análise", None),
-                            ("Ficheiros", Some(Sort::Files)),
-                            ("Média por ficheiro", None),
+                            ("Extension", Some(Sort::Name)),
+                            ("Total size", Some(Sort::Size)),
+                            ("% of scan", None),
+                            ("Files", Some(Sort::Files)),
+                            ("Average per file", None),
                         ] {
                             header.col(|ui| {
                                 if sort_header(ui, title, sort, &self.browser) {
@@ -259,7 +262,7 @@ impl SpaceFinder {
         let Some(scan) = self.scan.clone() else {
             return;
         };
-        section_title(ui, "DETALHES DA SELEÇÃO");
+        section_title(ui, "SELECTION DETAILS");
         ui.add_space(8.0);
         egui::ScrollArea::vertical()
             .id_salt("properties-scroll")
@@ -271,24 +274,19 @@ impl SpaceFinder {
                 {
                     let color = extension_color(&ext);
                     ui.label(RichText::new(extension_label(&ext)).size(22.0).strong());
-                    ui.label(RichText::new("Tipo de ficheiro").size(12.0).color(MUTED));
-                    metric(
-                        ui,
-                        human_size(stats.bytes),
-                        "tamanho lógico agregado",
-                        color,
-                    );
-                    detail_row(ui, "Ficheiros", count(stats.files));
-                    detail_row(ui, "Média", human_size(stats.bytes / stats.files.max(1)));
-                    detail_row(ui, "Bytes exatos", count(stats.bytes));
+                    ui.label(RichText::new("File type").size(12.0).color(MUTED));
+                    metric(ui, human_size(stats.bytes), "aggregate logical size", color);
+                    detail_row(ui, "Files", count(stats.files));
+                    detail_row(ui, "Average", human_size(stats.bytes / stats.files.max(1)));
+                    detail_row(ui, "Exact bytes", count(stats.bytes));
                     ui.add_space(8.0);
                     bar(ui, percentage(stats.bytes, scan.nodes[0].bytes), color);
-                    ui.label(RichText::new("do espaço medido").size(11.0).color(MUTED));
+                    ui.label(RichText::new("of measured space").size(11.0).color(MUTED));
                     ui.add_space(16.0);
                     if ui
                         .add_sized(
                             [ui.available_width(), 34.0],
-                            egui::Button::new("Explorar estes ficheiros"),
+                            egui::Button::new("Explore these files"),
                         )
                         .clicked()
                     {
@@ -305,7 +303,7 @@ impl SpaceFinder {
                         if node.directory { COLORS[3] } else { COLORS[1] },
                     );
                     ui.label(
-                        RichText::new(if node.directory { "PASTA" } else { "FICHEIRO" })
+                        RichText::new(if node.directory { "FOLDER" } else { "FILE" })
                             .size(10.0)
                             .strong()
                             .color(MUTED),
@@ -340,13 +338,13 @@ impl SpaceFinder {
                         .show(ui, |ui| {
                             ui.set_width(ui.available_width());
                             ui.label(
-                                RichText::new("Cobertura parcial")
+                                RichText::new("Partial coverage")
                                     .size(12.0)
                                     .strong()
                                     .color(COLORS[3]),
                             );
                             ui.label(
-                                RichText::new("Inclui apenas o que foi possível medir.")
+                                RichText::new("Includes only what could be measured.")
                                     .size(11.0)
                                     .color(MUTED),
                             );
@@ -355,25 +353,25 @@ impl SpaceFinder {
                 metric(
                     ui,
                     human_size(node.bytes),
-                    "tamanho lógico",
+                    "logical size",
                     if node.incomplete { COLORS[3] } else { ACCENT },
                 );
-                detail_row(ui, "Bytes exatos", count(node.bytes));
+                detail_row(ui, "Exact bytes", count(node.bytes));
                 if node.directory {
-                    detail_row(ui, "Ficheiros", count(node.files));
-                    detail_row(ui, "Subpastas", count(node.folders));
-                    detail_row(ui, "Itens diretos", count(node.children.len() as u64));
+                    detail_row(ui, "Files", count(node.files));
+                    detail_row(ui, "Subfolders", count(node.folders));
+                    detail_row(ui, "Direct items", count(node.children.len() as u64));
                     detail_row(
                         ui,
-                        "Média / ficheiro",
+                        "Average / file",
                         human_size(node.bytes / node.files.max(1)),
                     );
                 }
                 ui.add_space(8.0);
-                section_title(ui, "OCUPAÇÃO");
+                section_title(ui, "SPACE USAGE");
                 detail_row(
                     ui,
-                    "Da pasta superior",
+                    "Of parent folder",
                     format!(
                         "{:.2}%",
                         percentage(
@@ -384,37 +382,37 @@ impl SpaceFinder {
                 );
                 detail_row(
                     ui,
-                    "Da análise",
+                    "Of scan",
                     format!("{:.2}%", percentage(node.bytes, scan.nodes[0].bytes)),
                 );
                 ui.add_space(12.0);
-                section_title(ui, "DATAS E ATRIBUTOS");
+                section_title(ui, "DATES AND ATTRIBUTES");
                 detail_row(
                     ui,
                     if node.directory {
-                        "Alteração do ramo"
+                        "Branch modified"
                     } else {
-                        "Alteração"
+                        "Modified"
                     },
                     date(node.details.modified),
                 );
                 detail_row(
                     ui,
                     if node.directory {
-                        "Acesso do ramo"
+                        "Branch accessed"
                     } else {
-                        "Último acesso"
+                        "Last accessed"
                     },
                     date(node.details.accessed),
                 );
-                detail_row(ui, "Criação", date(node.details.created));
+                detail_row(ui, "Created", date(node.details.created));
                 property(
                     ui,
-                    "Atributos",
+                    "Attributes",
                     platform::attribute_names(node.details.attributes),
                 );
                 ui.add_space(4.0);
-                section_title(ui, "LOCALIZAÇÃO");
+                section_title(ui, "LOCATION");
                 ui.add_space(4.0);
                 ui.add(
                     egui::Label::new(
@@ -427,20 +425,20 @@ impl SpaceFinder {
                 ui.add_space(12.0);
                 let idle = self.operation.is_none() && self.events.is_none();
                 ui.horizontal_wrapped(|ui| {
-                    if ui.button("Copiar caminho").clicked() {
+                    if ui.button("Copy path").clicked() {
                         ui.ctx().copy_text(platform::display_path(&path));
                     }
                     if ui
-                        .add_enabled(idle, egui::Button::new("Explorador"))
+                        .add_enabled(idle, egui::Button::new("Explorer"))
                         .clicked()
                     {
                         self.execute_item(ui.ctx(), self.selected, ItemAction::Reveal);
                     }
-                    if node.directory && ui.button("Focar pasta").clicked() {
+                    if node.directory && ui.button("Focus folder").clicked() {
                         self.focus(self.selected, true);
                     }
                     if ui
-                        .add_enabled(idle, egui::Button::new("Propriedades do Windows"))
+                        .add_enabled(idle, egui::Button::new("Windows properties"))
                         .clicked()
                     {
                         self.execute_item(ui.ctx(), self.selected, ItemAction::Properties);
@@ -452,7 +450,7 @@ impl SpaceFinder {
                     .add_enabled(
                         idle && self.selected != 0,
                         egui::Button::new(
-                            RichText::new("Enviar para a Reciclagem…")
+                            RichText::new("Move to Recycle Bin…")
                                 .color(Color32::from_rgb(242, 155, 151)),
                         )
                         .min_size(Vec2::new(ui.available_width(), 32.0)),
@@ -465,13 +463,13 @@ impl SpaceFinder {
                     platform::display_path(&scan.root).starts_with(&platform::display_path(&v.path))
                 }) {
                     ui.add_space(16.0);
-                    section_title(ui, "UNIDADE");
+                    section_title(ui, "DRIVE");
                     ui.add_space(4.0);
                     ui.horizontal(|ui| {
                         ui.strong(platform::display_path(&volume.path));
                         ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                             ui.label(
-                                RichText::new(format!("{} livres", human_size(volume.free)))
+                                RichText::new(format!("{} free", human_size(volume.free)))
                                     .size(11.0)
                                     .color(MUTED),
                             );
@@ -494,14 +492,14 @@ impl SpaceFinder {
         };
         let focus = self.map_focus.unwrap_or(0);
         ui.horizontal(|ui| {
-            ui.label(RichText::new("Distribuição do espaço").size(13.0).strong());
+            ui.label(RichText::new("Space distribution").size(13.0).strong());
             ui.add(
                 egui::Label::new(
                     RichText::new(format!(
                         "{}{}",
                         platform::display_path(&scan.path(focus)),
                         if scan.nodes[focus].incomplete {
-                            " · parcial"
+                            " · partial"
                         } else {
                             ""
                         }
@@ -544,7 +542,7 @@ impl SpaceFinder {
             }
             let name = index
                 .map(|i| scan.nodes[i].name.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "Outros itens".into());
+                .unwrap_or_else(|| "Other items".into());
             let color = map_color(&scan, index, rank);
             let selected = index == Some(self.selected);
             let inner = area.shrink(1.5);
@@ -588,7 +586,7 @@ impl SpaceFinder {
                 navigate = Some(index);
             }
             response.on_hover_text(format!(
-                "{name}\n{} · {:.2}% desta pasta\nClica para explorar · botão direito para ações",
+                "{name}\n{} · {:.2}% of this folder\nClick to explore · right-click for actions",
                 human_size(bytes),
                 percentage(bytes, scan.nodes[focus].bytes)
             ));
@@ -597,7 +595,7 @@ impl SpaceFinder {
             ui.painter().text(
                 rect.center(),
                 egui::Align2::CENTER_CENTER,
-                "Esta pasta não contém ficheiros com tamanho medido.",
+                "This folder contains no files with a measured size.",
                 FontId::proportional(12.0),
                 MUTED,
             );
@@ -621,7 +619,7 @@ impl SpaceFinder {
                     );
                     let name = index
                         .map(|i| scan.nodes[i].name.to_string_lossy().into_owned())
-                        .unwrap_or_else(|| "Outros itens".into());
+                        .unwrap_or_else(|| "Other items".into());
                     let painter = ui.painter().with_clip_rect(Rect::from_min_max(
                         area.min + Vec2::new(13.0, 0.0),
                         Pos2::new(area.max.x - 74.0, area.max.y),
@@ -663,7 +661,7 @@ impl SpaceFinder {
 }
 
 fn extension_label(ext: &str) -> String {
-    if ext == "sem extensão" {
+    if ext == "no extension" {
         ext.into()
     } else {
         format!(".{ext}")
@@ -794,6 +792,6 @@ fn sort_header(ui: &mut egui::Ui, title: &str, key: Option<Sort>, browser: &Brow
     }
     key.is_some()
         && response
-            .on_hover_text("Clica para ordenar; volta a clicar para inverter.")
+            .on_hover_text("Click to sort; click again to reverse.")
             .clicked()
 }

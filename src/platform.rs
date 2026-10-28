@@ -54,15 +54,15 @@ fn filetime_seconds(high: u32, low: u32) -> Option<i64> {
 
 pub fn attribute_names(attributes: u32) -> String {
     let labels: Vec<_> = [
-        (1, "Só leitura"),
-        (2, "Oculto"),
-        (4, "Sistema"),
-        (0x20, "Arquivo"),
-        (0x100, "Temporário"),
+        (1, "Read-only"),
+        (2, "Hidden"),
+        (4, "System"),
+        (0x20, "Archive"),
+        (0x100, "Temporary"),
         (0x200, "Sparse"),
-        (0x800, "Comprimido"),
+        (0x800, "Compressed"),
         (0x1000, "Offline"),
-        (0x4000, "Encriptado"),
+        (0x4000, "Encrypted"),
     ]
     .into_iter()
     .filter_map(|(mask, label)| (attributes & mask != 0).then_some(label))

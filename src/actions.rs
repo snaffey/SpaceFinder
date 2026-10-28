@@ -32,7 +32,7 @@ impl Stamp {
     fn read(path: &Path) -> Result<Self, String> {
         let metadata = fs::symlink_metadata(path).map_err(|e| e.to_string())?;
         if is_link(&metadata) {
-            return Err("O item é uma ligação. Reanalisa a pasta antes de continuar.".into());
+            return Err("The item is a link. Rescan the folder before continuing.".into());
         }
         Ok(Self {
             directory: metadata.is_dir(),
@@ -74,7 +74,7 @@ impl RecycleRequest {
     /// shell operation. Never allow the scan root, a volume root or a link escape.
     pub fn prepare(root: &Path, target: &Path) -> Result<Self, String> {
         if !target.is_absolute() {
-            return Err("O caminho tem de ser absoluto.".into());
+            return Err("The path must be absolute.".into());
         }
         Self::check_original_path(target)?;
         let stamp = Stamp::read(target)?;
@@ -95,14 +95,14 @@ impl RecycleRequest {
             .components()
             .any(|part| matches!(part, std::path::Component::ParentDir))
         {
-            return Err("O caminho contém navegação relativa. Reanalisa a pasta.".into());
+            return Err("The path contains relative navigation. Rescan the folder.".into());
         }
         // Check before canonicalization: resolving first would hide junctions
         // which redirect to another location inside the same scan root.
         for ancestor in path.ancestors() {
             if is_link(&fs::symlink_metadata(ancestor).map_err(|e| e.to_string())?) {
                 return Err(
-                    "O caminho contém uma ligação. Reanalisa a pasta antes de continuar.".into(),
+                    "The path contains a link. Rescan the folder before continuing.".into(),
                 );
             }
         }
@@ -111,12 +111,12 @@ impl RecycleRequest {
 
     fn check_boundary(root: &Path, path: &Path) -> Result<(), String> {
         if path == root || path.parent().is_none() || !path.starts_with(root) {
-            return Err("Só podes eliminar itens dentro da pasta analisada. A raiz da análise e as unidades estão protegidas.".into());
+            return Err("You can only delete items within the scanned folder. The scan root and drives are protected.".into());
         }
         for ancestor in path.ancestors() {
             let metadata = fs::symlink_metadata(ancestor).map_err(|e| e.to_string())?;
             if is_link(&metadata) {
-                return Err("O caminho passou a conter uma ligação. Reanalisa a pasta.".into());
+                return Err("The path now contains a link. Rescan the folder.".into());
             }
             if ancestor == root {
                 break;
@@ -132,7 +132,7 @@ impl RecycleRequest {
             || Stamp::read(&self.path)? != self.stamp
         {
             return Err(
-                "O item mudou desde a confirmação. Reanalisa e volta a selecioná-lo.".into(),
+                "The item has changed since confirmation. Rescan and select it again.".into(),
             );
         }
         native_recycle_supported(&self.path)
@@ -143,7 +143,7 @@ impl RecycleRequest {
         native_recycle(&self.path)?;
         match fs::symlink_metadata(&self.path) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-            _ => Err("O Windows não concluiu a operação. O item continua na localização original; reanalisa a pasta.".into()),
+            _ => Err("Windows did not complete the operation. The item remains in its original location; rescan the folder.".into()),
         }
     }
 }
@@ -234,11 +234,11 @@ mod native {
     }
 
     pub(super) fn supported(path: &Path) -> Result<(), String> {
-        let root = path.ancestors().last().ok_or("Unidade inválida")?;
+        let root = path.ancestors().last().ok_or("Invalid drive")?;
         let root = wide(shell_path(root).as_os_str());
         // SAFETY: the buffer is a live NUL-terminated absolute volume path.
         if unsafe { GetDriveTypeW(root.as_ptr()) } != DRIVE_FIXED {
-            return Err("Enviar para a Reciclagem só está disponível em unidades locais fixas. Não é efetuada eliminação permanente.".into());
+            return Err("Moving to the Recycle Bin is only available on fixed local drives. Permanent deletion is not performed.".into());
         }
         Ok(())
     }
@@ -276,7 +276,7 @@ mod native {
                 .as_bool()
             {
                 return Err(
-                    "A operação foi cancelada ou não pôde ser concluída pelo Windows.".into(),
+                    "The operation was canceled or could not be completed by Windows.".into(),
                 );
             }
         }
@@ -408,11 +408,11 @@ mod native {
             return Ok(());
         }
         let message = if result == WAIT_TIMEOUT {
-            "A nova janela não confirmou que está pronta. A janela atual continua aberta."
+            "The new window did not confirm readiness. The current window remains open."
         } else if result == WAIT_OBJECT_0 || result == WAIT_OBJECT_0 + 1 {
-            "A nova instância terminou antes de ficar pronta. A janela atual continua aberta."
+            "The new instance exited before it was ready. The current window remains open."
         } else {
-            "Não foi possível confirmar a nova janela. A janela atual continua aberta."
+            "Could not confirm the new window. The current window remains open."
         };
         Err(message.into())
     }
@@ -421,7 +421,7 @@ mod native {
         if !name.to_str().is_some_and(|name| {
             name.starts_with(READY_PREFIX) && name.len() < 128 && !name.contains('\0')
         }) {
-            return Err("Identificador de abertura inválido.".into());
+            return Err("Invalid launch identifier.".into());
         }
         let name = wide(name);
         // SAFETY: opens only this attempt's named event with signal-only access.
@@ -439,7 +439,7 @@ mod native {
     /// Called by the new GUI only after it has painted a frame and verified its token.
     pub fn acknowledge_elevation_ready(name: &OsStr) -> Result<(), String> {
         if !is_elevated() {
-            return Err("A nova janela não tem privilégios de administrador.".into());
+            return Err("The new window does not have administrator privileges.".into());
         }
         signal_ready_event(name)
     }
@@ -467,14 +467,14 @@ mod native {
             if ShellExecuteExW(&mut info) == 0 {
                 let error = std::io::Error::last_os_error();
                 return Err(if error.raw_os_error() == Some(1223) {
-                    "Pedido de administrador cancelado. A janela atual continua aberta.".into()
+                    "Administrator request canceled. The current window remains open.".into()
                 } else {
                     error.to_string()
                 });
             }
             if info.hProcess.is_null() {
                 return Err(
-                    "O Windows não confirmou a nova instância. A janela atual continua aberta."
+                    "Windows did not confirm the new instance. The current window remains open."
                         .into(),
                 );
             }
@@ -544,7 +544,7 @@ mod native {
             let mut child = readiness_child(&ready, "exit");
             let result = wait_for_ready(&ready, child.as_raw_handle(), 5_000);
             assert!(child.wait().unwrap().success());
-            assert!(result.unwrap_err().contains("continua aberta"));
+            assert!(result.unwrap_err().contains("remains open"));
         }
 
         #[test]
@@ -552,7 +552,7 @@ mod native {
             let ready = ReadyEvent::create().unwrap();
             let mut child = readiness_child(&ready, "idle");
             let result = wait_for_ready(&ready, child.as_raw_handle(), 20);
-            assert!(result.unwrap_err().contains("continua aberta"));
+            assert!(result.unwrap_err().contains("remains open"));
             assert!(child.try_wait().unwrap().is_none());
             assert!(child.wait().unwrap().success());
         }
@@ -594,27 +594,27 @@ pub fn is_elevated() -> bool {
 }
 #[cfg(not(windows))]
 pub fn cleanup_tool(_tool: CleanupTool) -> Result<(), String> {
-    Err("A ferramenta está disponível no Windows.".into())
+    Err("This tool is available on Windows.".into())
 }
 #[cfg(not(windows))]
 pub fn shell(_action: ShellAction, _path: &Path) -> Result<(), String> {
-    Err("Ação disponível no Windows.".into())
+    Err("This action is available on Windows.".into())
 }
 #[cfg(not(windows))]
 pub fn elevate(_path: &Path) -> Result<(), String> {
-    Err("Ação disponível no Windows.".into())
+    Err("This action is available on Windows.".into())
 }
 #[cfg(not(windows))]
 pub fn acknowledge_elevation_ready(_name: &std::ffi::OsStr) -> Result<(), String> {
-    Err("Ação disponível no Windows.".into())
+    Err("This action is available on Windows.".into())
 }
 #[cfg(not(windows))]
 fn native_recycle_supported(_path: &Path) -> Result<(), String> {
-    Err("A Reciclagem está disponível nesta versão apenas no Windows.".into())
+    Err("The Recycle Bin is only available on Windows in this version.".into())
 }
 #[cfg(not(windows))]
 fn native_recycle(_path: &Path) -> Result<(), String> {
-    Err("Ação disponível no Windows.".into())
+    Err("This action is available on Windows.".into())
 }
 
 #[cfg(test)]
@@ -689,7 +689,7 @@ mod tests {
         fs::remove_dir(&root).unwrap();
 
         assert!(resolved.starts_with(&root));
-        assert!(result.unwrap_err().contains("ligação"));
+        assert!(result.unwrap_err().contains("link"));
         assert_eq!(untouched, b"must remain unchanged");
     }
 
@@ -721,7 +721,7 @@ mod tests {
         fs::remove_dir(&moved).unwrap();
         fs::remove_dir(&root).unwrap();
 
-        assert!(result.unwrap_err().contains("ligação"));
+        assert!(result.unwrap_err().contains("link"));
         assert_eq!(untouched, b"preserve this file");
     }
 

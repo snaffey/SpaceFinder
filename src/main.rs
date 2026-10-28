@@ -31,7 +31,7 @@ fn main() {
     ) {
         rfd::MessageDialog::new()
             .set_title("SpaceFinder")
-            .set_description(format!("Não foi possível abrir a interface: {error}"))
+            .set_description(format!("Could not open the interface: {error}"))
             .set_level(rfd::MessageLevel::Error)
             .show();
         std::process::exit(1);

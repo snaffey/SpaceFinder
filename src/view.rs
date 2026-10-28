@@ -66,7 +66,7 @@ pub fn extension(node: &Node) -> String {
     Path::new(&node.name)
         .extension()
         .map(|v| v.to_string_lossy().to_lowercase())
-        .unwrap_or_else(|| "sem extensão".into())
+        .unwrap_or_else(|| "no extension".into())
 }
 
 impl Browser {

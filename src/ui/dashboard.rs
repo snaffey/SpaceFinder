@@ -107,9 +107,9 @@ pub(super) fn navigation(
 
 fn category(category: Category) -> (&'static str, Color32) {
     match category {
-        Category::WindowsCleanup => ("GERIR PELO WINDOWS", COLORS[1]),
-        Category::Regenerable => ("PODE SER RECRIADO", ACCENT),
-        Category::Review => ("REVISÃO PESSOAL", COLORS[3]),
+        Category::WindowsCleanup => ("MANAGE WITH WINDOWS", COLORS[1]),
+        Category::Regenerable => ("CAN BE RECREATED", ACCENT),
+        Category::Review => ("PERSONAL REVIEW", COLORS[3]),
     }
 }
 
@@ -139,7 +139,7 @@ fn stat(ui: &mut egui::Ui, width: f32, title: &str, value: String, caption: &str
 
 impl SpaceFinder {
     fn cleanup_tool(&mut self, ctx: &egui::Context, tool: CleanupTool) {
-        self.start_operation(ctx, "A abrir a ferramenta do Windows…", move || {
+        self.start_operation(ctx, "Opening the Windows tool…", move || {
             actions::cleanup_tool(tool)?;
             Ok(OperationDone::Shell)
         });
@@ -169,16 +169,16 @@ impl SpaceFinder {
             let width = (ui.available_width() - 36.0) / 4.0;
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 12.0;
-                stat(ui, width, "ESPAÇO ANALISADO", human_size(scan.progress.bytes), if scan.nodes[0].incomplete { "Cobertura parcial · valores lógicos" } else { "Tamanho lógico dos ficheiros" }, TEXT);
-                stat(ui, width, "FICHEIROS", count(scan.progress.files), &format!("{} pastas analisadas", count(scan.progress.folders)), TEXT);
-                stat(ui, width, "PODE SER RECRIADO", report.as_ref().map_or_else(|| "A analisar…".into(), |r| human_size(r.regenerable_bytes)), "Artefactos gerados, sujeitos a revisão", ACCENT);
-                stat(ui, width, "TEMPO DE LEITURA", format!("{:.2} s", scan.progress.seconds), "Leitura nativa em paralelo", COLORS[1]);
+                stat(ui, width, "SCANNED SIZE", human_size(scan.progress.bytes), if scan.nodes[0].incomplete { "Partial coverage · logical sizes" } else { "Logical file size" }, TEXT);
+                stat(ui, width, "FILES", count(scan.progress.files), &format!("{} folders scanned", count(scan.progress.folders)), TEXT);
+                stat(ui, width, "CAN BE RECREATED", report.as_ref().map_or_else(|| "Scanning…".into(), |r| human_size(r.regenerable_bytes)), "Generated artifacts, review required", ACCENT);
+                stat(ui, width, "SCAN TIME", format!("{:.2} s", scan.progress.seconds), "Native parallel scanning", COLORS[1]);
             });
             ui.add_space(16.0);
             ui.columns(2, |columns| {
                 frame().show(&mut columns[0], |ui| {
                     ui.set_width(ui.available_width());
-                    label(ui, "CAPACIDADE DA UNIDADE"); ui.add_space(12.0);
+                    label(ui, "DRIVE CAPACITY"); ui.add_space(12.0);
                     let root = platform::display_path(&scan.root);
                     if let Some(volume) = self.volumes.iter().find(|v| root.starts_with(&platform::display_path(&v.path))) {
                         let used = volume.total.saturating_sub(volume.free);
@@ -191,33 +191,33 @@ impl SpaceFinder {
                             let points: Vec<_> = (0..=96).map(|i| { let a = -std::f32::consts::FRAC_PI_2 + i as f32 / 96.0 * std::f32::consts::TAU * ratio; center + Vec2::new(a.cos(), a.sin()) * radius }).collect();
                             ui.painter().add(egui::Shape::line(points, Stroke::new(11.0, color)));
                             ui.painter().text(center - Vec2::new(0.0, 8.0), egui::Align2::CENTER_CENTER, format!("{:.0}%", ratio * 100.0), FontId::proportional(27.0), TEXT);
-                            ui.painter().text(center + Vec2::new(0.0, 18.0), egui::Align2::CENTER_CENTER, "ocupado", FontId::proportional(11.0), MUTED);
+                            ui.painter().text(center + Vec2::new(0.0, 18.0), egui::Align2::CENTER_CENTER, "used", FontId::proportional(11.0), MUTED);
                             ui.vertical(|ui| {
-                                ui.strong(format!("Disco {}", platform::display_path(&volume.path)));
-                                property(ui, "Livre", human_size(volume.free));
-                                property(ui, "Capacidade", human_size(volume.total));
-                                ui.label(RichText::new("Informação do Windows para toda a unidade.").size(11.0).color(MUTED));
+                                ui.strong(format!("Drive {}", platform::display_path(&volume.path)));
+                                property(ui, "Free", human_size(volume.free));
+                                property(ui, "Capacity", human_size(volume.total));
+                                ui.label(RichText::new("Windows information for the entire drive.").size(11.0).color(MUTED));
                             });
                         });
-                    } else { ui.label("A capacidade desta localização não está disponível."); }
+                    } else { ui.label("Capacity information is unavailable for this location."); }
                 });
                 frame().show(&mut columns[1], |ui| {
                     ui.set_width(ui.available_width());
-                    label(ui, "UM PONTO DE PARTIDA PARA LIMPAR"); ui.add_space(12.0);
-                    ui.label(RichText::new("Revê primeiro. Remove depois.").size(21.0).strong());
+                    label(ui, "A STARTING POINT FOR CLEANUP"); ui.add_space(12.0);
+                    ui.label(RichText::new("Review first. Remove later.").size(21.0).strong());
                     ui.add_space(8.0);
                     if let Some(report) = &report {
-                        ui.label(format!("{} {} nos dados desta análise.", report.items.len(), if report.items.len() == 1 { "sugestão encontrada" } else { "sugestões encontradas" }));
-                        ui.label(RichText::new(format!("{} em artefactos recriáveis · {} em ficheiros para rever", human_size(report.regenerable_bytes), human_size(report.review_bytes))).size(12.0).color(MUTED));
-                    } else { ui.horizontal(|ui| { ui.spinner(); ui.label("A preparar as recomendações…"); }); }
+                        ui.label(format!("{} {} in this scan.", report.items.len(), if report.items.len() == 1 { "suggestion found" } else { "suggestions found" }));
+                        ui.label(RichText::new(format!("{} in recreatable artifacts · {} in files to review", human_size(report.regenerable_bytes), human_size(report.review_bytes))).size(12.0).color(MUTED));
+                    } else { ui.horizontal(|ui| { ui.spinner(); ui.label("Preparing recommendations…"); }); }
                     ui.add_space(8.0);
-                    ui.label(RichText::new("Os valores são tamanhos lógicos observados. Não são uma promessa de espaço recuperado.").size(11.0).color(MUTED));
+                    ui.label(RichText::new("Values are observed logical sizes, not a promise of recovered space.").size(11.0).color(MUTED));
                     ui.add_space(16.0);
-                    if ui.add_sized([ui.available_width(), 36.0], egui::Button::new(RichText::new("Ver recomendações").strong().color(BG)).fill(ACCENT)).clicked() { self.change_mode(Mode::Recommendations); }
+                    if ui.add_sized([ui.available_width(), 36.0], egui::Button::new(RichText::new("View recommendations").strong().color(BG)).fill(ACCENT)).clicked() { self.change_mode(Mode::Recommendations); }
                 });
             });
             ui.add_space(20.0);
-            ui.horizontal(|ui| { ui.label(RichText::new("Onde está o espaço").size(18.0).strong()); ui.with_layout(Layout::right_to_left(Align::Center), |ui| { if ui.small_button("Abrir explorador").clicked() { self.focus(0, true); } }); });
+            ui.horizontal(|ui| { ui.label(RichText::new("Where the space goes").size(18.0).strong()); ui.with_layout(Layout::right_to_left(Align::Center), |ui| { if ui.small_button("Open explorer").clicked() { self.focus(0, true); } }); });
             ui.add_space(8.0);
             let mut selected = None;
             for index in &self.overview_children {
@@ -236,7 +236,7 @@ impl SpaceFinder {
             }
             if let Some(index) = selected { self.inspect_recommendation(index); ui.ctx().request_repaint(); }
             ui.add_space(16.0);
-            ui.label(RichText::new("Os tamanhos da análise e a ocupação física do disco podem diferir por compressão, hard links, metadados e permissões.").size(11.0).color(MUTED));
+            ui.label(RichText::new("Scan sizes and physical disk usage may differ due to compression, hard links, metadata and permissions.").size(11.0).color(MUTED));
         });
     }
 
@@ -244,30 +244,30 @@ impl SpaceFinder {
         ui.add_space(32.0);
         frame().show(ui, |ui| {
             ui.set_width(ui.available_width());
-            label(ui, "CONHECE O TEU DISCO"); ui.add_space(12.0);
-            ui.label(RichText::new(if self.events.is_some() { "A descobrir onde está o espaço…" } else { "Mais clareza. Mais espaço para decidir." }).size(28.0).strong());
+            label(ui, "UNDERSTAND YOUR DISK"); ui.add_space(12.0);
+            ui.label(RichText::new(if self.events.is_some() { "Finding where the space goes…" } else { "More clarity. More room to decide." }).size(28.0).strong());
             ui.add_space(12.0);
-            ui.label(RichText::new("Escolhe uma unidade ou pasta. A análise lê os metadados e prepara recomendações sem apagar nada.").color(MUTED));
+            ui.label(RichText::new("Choose a drive or folder. The scan reads metadata and prepares recommendations without deleting anything.").color(MUTED));
             ui.add_space(24.0);
             if self.events.is_some() {
-                ui.horizontal(|ui| { ui.spinner(); ui.label(format!("{} ficheiros · {} · {:.1} s", count(self.progress.files), human_size(self.progress.bytes), self.progress.seconds)); });
+                ui.horizontal(|ui| { ui.spinner(); ui.label(format!("{} files · {} · {:.1} s", count(self.progress.files), human_size(self.progress.bytes), self.progress.seconds)); });
                 ui.add(egui::Label::new(RichText::new(&self.progress.current).size(11.0).color(MUTED)).truncate());
-            } else if ui.add_sized([224.0, 40.0], egui::Button::new(RichText::new("Escolher uma pasta").color(BG).strong()).fill(ACCENT)).clicked() { self.choose_folder(); }
+            } else if ui.add_sized([224.0, 40.0], egui::Button::new(RichText::new("Choose a folder").color(BG).strong()).fill(ACCENT)).clicked() { self.choose_folder(); }
         });
         ui.add_space(20.0);
         ui.columns(3, |columns| {
             for (ui, (title, body)) in columns.iter_mut().zip([
                 (
-                    "Explora",
-                    "Vê pastas, ficheiros e tamanhos numa árvore detalhada.",
+                    "Explore",
+                    "See folders, files and sizes in a detailed tree.",
                 ),
                 (
-                    "Compreende",
-                    "Compara tipos de ficheiro e encontra o que mais ocupa.",
+                    "Understand",
+                    "Compare file types and find what takes up the most space.",
                 ),
                 (
                     "Decide",
-                    "Revê sugestões com evidência e cautelas antes de remover.",
+                    "Review suggestions, evidence and cautions before removing anything.",
                 ),
             ]) {
                 frame().show(ui, |ui| {
@@ -279,7 +279,7 @@ impl SpaceFinder {
             }
         });
         ui.add_space(16.0);
-        ui.label(RichText::new("Administrador é opcional e pode permitir ler mais pastas. Algumas continuam protegidas.").size(11.0).color(MUTED));
+        ui.label(RichText::new("Administrator is optional and may allow more folders to be read. Some remain protected.").size(11.0).color(MUTED));
     }
 
     pub(super) fn recommendations_page(&mut self, ui: &mut egui::Ui) {
@@ -287,7 +287,7 @@ impl SpaceFinder {
             ui.add_space(32.0);
             ui.horizontal(|ui| {
                 ui.spinner();
-                ui.label("A analisar os dados para preparar recomendações…");
+                ui.label("Analyzing scan data to prepare recommendations…");
             });
             return;
         };
@@ -296,16 +296,16 @@ impl SpaceFinder {
         };
         egui::Frame::new().fill(Color32::from_rgb(24, 43, 43)).corner_radius(8).inner_margin(14).show(ui, |ui| {
             ui.set_width(ui.available_width());
-            ui.label(RichText::new("Sugestões para rever, com contexto.").strong().color(ACCENT));
-            ui.label(RichText::new("A análise não elimina nada. Idade, tamanho ou extensão não garantem que um ficheiro deixou de ser necessário.").size(12.0).color(MUTED));
+            ui.label(RichText::new("Suggestions to review, with context.").strong().color(ACCENT));
+            ui.label(RichText::new("Scanning deletes nothing. Age, size or extension do not guarantee a file is no longer needed.").size(12.0).color(MUTED));
         });
         ui.add_space(12.0);
         ui.horizontal_wrapped(|ui| {
             for (value, title) in [
-                (None, "Todas"),
-                (Some(Category::WindowsCleanup), "Pelo Windows"),
-                (Some(Category::Regenerable), "Recriáveis"),
-                (Some(Category::Review), "Rever pessoalmente"),
+                (None, "All"),
+                (Some(Category::WindowsCleanup), "Windows tools"),
+                (Some(Category::Regenerable), "Recreatable"),
+                (Some(Category::Review), "Personal review"),
             ] {
                 ui.selectable_value(&mut self.recommendation_category, value, title);
             }
@@ -313,7 +313,7 @@ impl SpaceFinder {
         ui.horizontal(|ui| {
             ui.add(
                 egui::TextEdit::singleline(&mut self.recommendation_query)
-                    .hint_text("Filtrar sugestões por nome ou caminho…")
+                    .hint_text("Filter suggestions by name or path…")
                     .desired_width((ui.available_width() - 100.0).max(120.0)),
             );
             ui.label(
@@ -321,9 +321,9 @@ impl SpaceFinder {
                     "{} {}",
                     report.items.len(),
                     if report.items.len() == 1 {
-                        "sugestão"
+                        "suggestion"
                     } else {
-                        "sugestões"
+                        "suggestions"
                     }
                 ))
                 .size(11.0)
@@ -355,12 +355,12 @@ impl SpaceFinder {
             ui.ctx().request_repaint();
         }
         if report.truncated {
-            ui.label(RichText::new("São mostradas até 200 sugestões prioritárias. Analisa uma pasta menor para aprofundar.").size(11.0).color(COLORS[3]));
+            ui.label(RichText::new("Up to 200 priority suggestions are shown. Scan a smaller folder for more detail.").size(11.0).color(COLORS[3]));
         }
         if filtered.is_empty() {
             ui.add_space(24.0);
-            ui.label(RichText::new("Sem sugestões para este filtro.").size(18.0));
-            ui.label(RichText::new("Isto não significa que não exista nada para limpar; o motor só sugere casos com contexto suficiente.").color(MUTED));
+            ui.label(RichText::new("No suggestions match this filter.").size(18.0));
+            ui.label(RichText::new("This does not mean there is nothing to clean up; the engine only suggests items with enough context.").color(MUTED));
         }
         egui::ScrollArea::vertical()
             .id_salt("recommendation-list")
@@ -436,14 +436,14 @@ impl SpaceFinder {
 
     pub(super) fn recommendation_details(&mut self, ui: &mut egui::Ui) {
         let (Some(report), Some(scan)) = (self.report.clone(), self.scan.clone()) else {
-            ui.label(RichText::new("As recomendações aparecem depois da análise.").color(MUTED));
+            ui.label(RichText::new("Recommendations appear after scanning.").color(MUTED));
             return;
         };
         let Some(item) = self
             .recommendation_selected
             .and_then(|i| report.items.get(i))
         else {
-            ui.label("Seleciona uma sugestão para ver o contexto.");
+            ui.label("Select a suggestion to see its context.");
             return;
         };
         egui::ScrollArea::vertical().id_salt("recommendation-details").show(ui, |ui| {
@@ -451,27 +451,27 @@ impl SpaceFinder {
             ui.label(RichText::new(caption).size(10.0).strong().color(color)); ui.add_space(12.0);
             ui.label(RichText::new(&item.title).size(20.0).strong()); ui.add_space(12.0);
             ui.label(RichText::new(human_size(item.bytes)).size(29.0).strong().color(color));
-            ui.label(RichText::new("tamanho lógico observado").size(11.0).color(MUTED)); ui.add_space(20.0);
-            label(ui, "PORQUÊ ESTA SUGESTÃO"); ui.add_space(6.0); ui.label(&item.reason); ui.add_space(16.0);
-            label(ui, "ANTES DE REMOVER"); ui.add_space(6.0); ui.add(egui::Label::new(RichText::new(&item.caution).color(COLORS[3])).wrap()); ui.add_space(16.0);
-            property(ui, "Localização", platform::display_path(&scan.path(item.node)));
-            property(ui, "Última alteração", date(scan.nodes[item.node].details.modified));
-            if report.incomplete { ui.label(RichText::new("A análise está incompleta; podem existir dados e oportunidades que não foi possível medir.").size(11.0).color(MUTED)); }
+            ui.label(RichText::new("observed logical size").size(11.0).color(MUTED)); ui.add_space(20.0);
+            label(ui, "WHY THIS SUGGESTION"); ui.add_space(6.0); ui.label(&item.reason); ui.add_space(16.0);
+            label(ui, "BEFORE REMOVING"); ui.add_space(6.0); ui.add(egui::Label::new(RichText::new(&item.caution).color(COLORS[3])).wrap()); ui.add_space(16.0);
+            property(ui, "Location", platform::display_path(&scan.path(item.node)));
+            property(ui, "Last modified", date(scan.nodes[item.node].details.modified));
+            if report.incomplete { ui.label(RichText::new("The scan is incomplete; some data and opportunities may not have been measured.").size(11.0).color(MUTED)); }
             ui.add_space(12.0);
             let idle = self.operation.is_none() && self.events.is_none() && self.delete_dialog.is_none();
-            let (button, tool) = match item.action { Action::StorageSettings => ("Abrir limpeza do Windows", Some(CleanupTool::WindowsRecommendations)), Action::RecycleBin => ("Abrir Reciclagem para rever", Some(CleanupTool::RecycleBin)), Action::Inspect => ("Rever na árvore", None) };
+            let (button, tool) = match item.action { Action::StorageSettings => ("Open Windows cleanup", Some(CleanupTool::WindowsRecommendations)), Action::RecycleBin => ("Review Recycle Bin", Some(CleanupTool::RecycleBin)), Action::Inspect => ("Review in tree", None) };
             if ui.add_enabled(idle, egui::Button::new(RichText::new(button).color(BG).strong()).fill(ACCENT).min_size(Vec2::new(ui.available_width(), 40.0))).clicked() {
                 if let Some(tool) = tool { self.cleanup_tool(ui.ctx(), tool); } else { self.inspect_recommendation(item.node); ui.ctx().request_repaint(); }
             }
-            if ui.add_enabled(idle, egui::Button::new("Mostrar no Explorador").min_size(Vec2::new(ui.available_width(), 36.0))).clicked() { self.execute_item(ui.ctx(), item.node, ItemAction::Reveal); }
+            if ui.add_enabled(idle, egui::Button::new("Show in File Explorer").min_size(Vec2::new(ui.available_width(), 36.0))).clicked() { self.execute_item(ui.ctx(), item.node, ItemAction::Reveal); }
             ui.add_space(16.0);
-            ui.label(RichText::new("Esta sugestão não executa nem elimina o ficheiro. A eliminação continua a exigir uma ação explícita e confirmação no explorador.").size(11.0).color(MUTED));
+            ui.label(RichText::new("This suggestion does not run or delete the file. Deletion still requires an explicit action and confirmation in the explorer.").size(11.0).color(MUTED));
             ui.add_space(12.0);
-            ui.collapsing("Critérios e referências", |ui| {
-                ui.label("Sem comparação de conteúdo não se afirmam duplicados. Ficheiros pessoais, cloud e ramos incompletos exigem revisão. As somas evitam contar a mesma pasta e os seus descendentes duas vezes.");
-                ui.hyperlink_to("Microsoft · libertar espaço", "https://support.microsoft.com/en-us/windows/experience/storage-filemanagement/free-up-drive-space-in-windows");
+            ui.collapsing("Criteria and references", |ui| {
+                ui.label("Duplicates are not identified without comparing content. Personal files, cloud locations and incomplete branches require review. Totals avoid counting a folder and its descendants twice.");
+                ui.hyperlink_to("Microsoft · free up space", "https://support.microsoft.com/en-us/windows/experience/storage-filemanagement/free-up-drive-space-in-windows");
                 ui.hyperlink_to("Rust · cargo clean", "https://doc.rust-lang.org/cargo/commands/cargo-clean.html");
-                ui.hyperlink_to("Next.js · pasta de compilação", "https://nextjs.org/docs/app/api-reference/config/next-config-js/distDir");
+                ui.hyperlink_to("Next.js · build directory", "https://nextjs.org/docs/app/api-reference/config/next-config-js/distDir");
             });
         });
     }

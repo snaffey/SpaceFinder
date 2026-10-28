@@ -252,9 +252,7 @@ impl SpaceFinder {
                         let report = recommendations::analyze(&scan, now);
                         (scan, report)
                     }))
-                    .map_err(|_| {
-                        "Não foi possível preparar as recomendações. Tenta reanalisar.".into()
-                    });
+                    .map_err(|_| "Could not prepare recommendations. Try scanning again.".into());
                     let _ = tx.send(result);
                     wake.request_repaint();
                 });
@@ -307,8 +305,8 @@ impl SpaceFinder {
             && let Ok(result) = exporter.try_recv()
         {
             self.notice = Some(match result {
-                Ok(true) => "Relatório CSV exportado.".into(),
-                Ok(false) => "Exportação cancelada.".into(),
+                Ok(true) => "CSV report exported.".into(),
+                Ok(false) => "Export canceled.".into(),
                 Err(e) => e,
             });
             self.exporter = None;
@@ -422,7 +420,7 @@ impl SpaceFinder {
         std::thread::spawn(move || {
             let _ = tx.send(
                 rfd::FileDialog::new()
-                    .set_title("Escolher pasta para analisar")
+                    .set_title("Choose a folder to scan")
                     .pick_folder(),
             );
         });
@@ -448,7 +446,7 @@ impl SpaceFinder {
                         writer.flush()
                     })
                     .map(|()| true)
-                    .map_err(|e| format!("Falha ao exportar: {e}"))
+                    .map_err(|e| format!("Export failed: {e}"))
             } else {
                 Ok(false)
             };
@@ -476,7 +474,7 @@ impl SpaceFinder {
         ui.add_space(8.0);
         ui.horizontal(brand);
         ui.label(
-            RichText::new("ESPAÇO PARA O QUE IMPORTA")
+            RichText::new("SPACE FOR WHAT MATTERS")
                 .size(9.5)
                 .color(MUTED),
         );
@@ -487,21 +485,17 @@ impl SpaceFinder {
             .id_salt("sidebar-content")
             .max_height((ui.available_height() - 96.0).max(200.0))
             .show(ui, |ui| {
-                ui.label(RichText::new("ANÁLISE").size(10.0).strong().color(MUTED));
+                ui.label(RichText::new("SCAN").size(10.0).strong().color(MUTED));
                 ui.add_space(8.0);
                 for (mode, title, caption) in [
-                    (Mode::Overview, "Visão geral", "O disco num relance"),
-                    (Mode::Tree, "Explorador", "Pastas e ficheiros"),
-                    (Mode::Largest, "Maiores ficheiros", "Onde está o espaço"),
-                    (
-                        Mode::Extensions,
-                        "Tipos de ficheiro",
-                        "Distribuição por extensão",
-                    ),
+                    (Mode::Overview, "Overview", "Your disk at a glance"),
+                    (Mode::Tree, "Explorer", "Folders and files"),
+                    (Mode::Largest, "Largest files", "Where the space goes"),
+                    (Mode::Extensions, "File types", "Breakdown by extension"),
                     (
                         Mode::Recommendations,
-                        "Recomendações",
-                        "O que vale a pena rever",
+                        "Recommendations",
+                        "What is worth reviewing",
                     ),
                 ] {
                     if navigation(ui, mode, title, caption, self.browser.mode == mode).clicked() {
@@ -510,7 +504,7 @@ impl SpaceFinder {
                 }
                 ui.add_space(24.0);
                 ui.label(
-                    RichText::new("UNIDADES LOCAIS")
+                    RichText::new("LOCAL DRIVES")
                         .size(10.0)
                         .strong()
                         .color(MUTED),
@@ -548,7 +542,7 @@ impl SpaceFinder {
                                     .desired_height(4.0),
                             );
                             ui.label(
-                                RichText::new(format!("{} livres", human_size(volume.free)))
+                                RichText::new(format!("{} free", human_size(volume.free)))
                                     .size(11.0)
                                     .color(MUTED),
                             );
@@ -562,7 +556,7 @@ impl SpaceFinder {
                     if idle && click.clicked() {
                         chosen = Some(volume.path.clone());
                     }
-                    click.on_hover_text("Analisar esta unidade");
+                    click.on_hover_text("Scan this drive");
                     ui.add_space(8.0);
                 }
                 if let Some(path) = chosen {
@@ -572,7 +566,7 @@ impl SpaceFinder {
                 if ui
                     .add_enabled(
                         idle && self.picker.is_none(),
-                        egui::Button::new("Escolher uma pasta…")
+                        egui::Button::new("Choose a folder…")
                             .min_size(Vec2::new(ui.available_width(), 40.0)),
                     )
                     .clicked()
@@ -583,20 +577,20 @@ impl SpaceFinder {
         ui.with_layout(Layout::bottom_up(Align::LEFT), |ui| {
             ui.add_space(8.0);
             ui.label(
-                RichText::new("Análise local · Rust · Windows")
+                RichText::new("Local scanning · Rust · Windows")
                     .size(10.0)
                     .color(MUTED),
             );
             ui.label(
                 RichText::new(if self.elevated {
-                    "Modo administrador"
+                    "Administrator mode"
                 } else {
-                    "Modo normal"
+                    "Standard mode"
                 })
                 .size(12.0)
                 .color(ACCENT),
             );
-            if ui.small_button("Permissões e cobertura").clicked() {
+            if ui.small_button("Permissions and coverage").clicked() {
                 self.show_issues = true;
             }
         });
@@ -607,25 +601,16 @@ impl SpaceFinder {
             self.events.is_none() && self.operation.is_none() && self.delete_dialog.is_none();
         let (title, subtitle) = match self.browser.mode {
             Mode::Overview => (
-                "Visão geral",
-                "Percebe o teu disco. Decide o que vale a pena manter.",
+                "Overview",
+                "Understand your disk. Decide what is worth keeping.",
             ),
             Mode::Recommendations => (
-                "Recomendações",
-                "Evidência e contexto antes de remover qualquer ficheiro.",
+                "Recommendations",
+                "Evidence and context before removing any file.",
             ),
-            Mode::Tree => (
-                "Explorador",
-                "Navega pela árvore e vê o detalhe de cada pasta.",
-            ),
-            Mode::Largest => (
-                "Maiores ficheiros",
-                "Encontra os ficheiros que concentram mais espaço.",
-            ),
-            Mode::Extensions => (
-                "Tipos de ficheiro",
-                "Compara extensões, quantidades e tamanhos.",
-            ),
+            Mode::Tree => ("Explorer", "Browse the tree and inspect each folder."),
+            Mode::Largest => ("Largest files", "Find the files taking up the most space."),
+            Mode::Extensions => ("File types", "Compare extensions, counts and sizes."),
         };
         ui.horizontal(|ui| {
             ui.vertical(|ui| {
@@ -633,21 +618,56 @@ impl SpaceFinder {
                 ui.label(RichText::new(subtitle).size(12.0).color(MUTED));
             });
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                if ui.add_enabled(self.scan.is_some() && self.exporter.is_none() && idle, egui::Button::new("Exportar CSV")).clicked() { self.export(); }
-                ui.menu_button("Opções", |ui| {
+                if ui
+                    .add_enabled(
+                        self.scan.is_some() && self.exporter.is_none() && idle,
+                        egui::Button::new("Export CSV"),
+                    )
+                    .clicked()
+                {
+                    self.export();
+                }
+                ui.menu_button("Options", |ui| {
                     ui.set_max_width(320.0);
-                    ui.label(RichText::new(if self.elevated { "Administrador ativo" } else { "Administrador é opcional" }).strong().color(ACCENT));
-                    ui.label("Pode permitir analisar mais pastas. Algumas continuam protegidas pelo Windows.");
-                    if !self.elevated && ui.add_enabled(idle, egui::Button::new("Abrir como administrador…")).clicked() { self.elevate(ui.ctx()); ui.close(); }
+                    ui.label(
+                        RichText::new(if self.elevated {
+                            "Running as administrator"
+                        } else {
+                            "Administrator is optional"
+                        })
+                        .strong()
+                        .color(ACCENT),
+                    );
+                    ui.label(
+                        "May allow more folders to be scanned. Some remain protected by Windows.",
+                    );
+                    if !self.elevated
+                        && ui
+                            .add_enabled(idle, egui::Button::new("Run as administrator…"))
+                            .clicked()
+                    {
+                        self.elevate(ui.ctx());
+                        ui.close();
+                    }
                     ui.separator();
-                    ui.label("DESEMPENHO");
-                    ui.add_enabled(idle, egui::Slider::new(&mut self.workers, 1..=32).text("workers"));
-                    ui.label(RichText::new("SSD: vários workers · HDD: experimenta 1–2").small().color(MUTED));
+                    ui.label("PERFORMANCE");
+                    ui.add_enabled(
+                        idle,
+                        egui::Slider::new(&mut self.workers, 1..=32).text("workers"),
+                    );
+                    ui.label(
+                        RichText::new("SSD: multiple workers · HDD: try 1–2")
+                            .small()
+                            .color(MUTED),
+                    );
                     ui.separator();
-                    ui.checkbox(&mut self.compact, "Linhas compactas");
-                    ui.checkbox(&mut self.show_details, "Propriedades no explorador");
-                    ui.checkbox(&mut self.show_map, "Mapa no explorador");
-                    if ui.button("Erros e cobertura").clicked() { self.show_issues = true; ui.close(); }
+                    ui.checkbox(&mut self.compact, "Compact rows");
+                    ui.checkbox(&mut self.show_details, "Explorer properties");
+                    ui.checkbox(&mut self.show_map, "Explorer treemap");
+                    if ui.button("Errors and coverage").clicked() {
+                        self.show_issues = true;
+                        ui.close();
+                    }
                 });
             });
         });
@@ -659,27 +679,27 @@ impl SpaceFinder {
                 egui::TextEdit::singleline(&mut self.path)
                     .desired_width(width)
                     .margin(Vec2::new(12.0, 10.0))
-                    .hint_text("Escolhe uma unidade ou escreve o caminho de uma pasta"),
+                    .hint_text("Choose a drive or enter a folder path"),
             );
             let enter = input.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter));
             if self.events.is_some() {
                 if ui
-                    .add_sized([104.0, 36.0], egui::Button::new("Parar análise"))
+                    .add_sized([104.0, 36.0], egui::Button::new("Stop scan"))
                     .clicked()
                     && let Some(cancel) = &self.cancel
                 {
                     cancel.store(true, Ordering::Relaxed);
                 }
             } else if self.operation.is_some() {
-                ui.add_enabled(false, egui::Button::new("Aguarda…"));
+                ui.add_enabled(false, egui::Button::new("Please wait…"));
             } else if ui
                 .add_sized(
                     [104.0, 36.0],
                     egui::Button::new(
                         RichText::new(if self.scan.is_some() {
-                            "Reanalisar"
+                            "Rescan"
                         } else {
-                            "Analisar"
+                            "Scan"
                         })
                         .strong()
                         .color(BG),
@@ -698,7 +718,7 @@ impl SpaceFinder {
         ui.horizontal(|ui| {
             if self.browser.mode == Mode::Tree {
                 if ui
-                    .add_enabled(self.history_at > 0, egui::Button::new("Voltar"))
+                    .add_enabled(self.history_at > 0, egui::Button::new("Back"))
                     .clicked()
                 {
                     self.history_at -= 1;
@@ -707,14 +727,14 @@ impl SpaceFinder {
                 if ui
                     .add_enabled(
                         self.history_at + 1 < self.history.len(),
-                        egui::Button::new("Avançar"),
+                        egui::Button::new("Forward"),
                     )
                     .clicked()
                 {
                     self.history_at += 1;
                     self.focus(self.history[self.history_at], false);
                 }
-                if ui.button("Raiz").clicked() {
+                if ui.button("Root").clicked() {
                     self.focus(0, true);
                 }
                 if ui
@@ -722,7 +742,7 @@ impl SpaceFinder {
                         self.scan
                             .as_ref()
                             .is_some_and(|s| s.nodes[self.selected].directory),
-                        egui::Button::new("Focar seleção"),
+                        egui::Button::new("Focus selection"),
                     )
                     .clicked()
                 {
@@ -731,9 +751,9 @@ impl SpaceFinder {
             } else {
                 ui.label(
                     RichText::new(if self.browser.mode == Mode::Largest {
-                        "1 000 maiores ficheiros correspondentes"
+                        "Top 1,000 matching files"
                     } else {
-                        "Extensões · totais de toda a análise"
+                        "Extensions · totals for the entire scan"
                     })
                     .strong(),
                 );
@@ -743,9 +763,9 @@ impl SpaceFinder {
                     egui::TextEdit::singleline(&mut self.browser.query)
                         .id(egui::Id::new("search"))
                         .hint_text(if self.browser.mode == Mode::Extensions {
-                            "Filtrar extensão..."
+                            "Filter extensions…"
                         } else {
-                            "Procurar em todos os níveis..."
+                            "Search at every level…"
                         })
                         .desired_width(220.0),
                 );
@@ -755,7 +775,7 @@ impl SpaceFinder {
                 if search.changed() {
                     self.refresh();
                 }
-                if !self.browser.query.is_empty() && ui.small_button("Limpar").clicked() {
+                if !self.browser.query.is_empty() && ui.small_button("Clear").clicked() {
                     self.browser.query.clear();
                     self.refresh();
                 }
@@ -765,7 +785,7 @@ impl SpaceFinder {
             let mut changed = false;
             if self.browser.mode == Mode::Tree {
                 for level in 1..=3 {
-                    if ui.small_button(format!("Nível {level}")).clicked()
+                    if ui.small_button(format!("Level {level}")).clicked()
                         && let Some(scan) = &self.scan
                     {
                         self.browser.expand_to(scan, level);
@@ -773,18 +793,16 @@ impl SpaceFinder {
                     }
                 }
                 changed |= ui
-                    .checkbox(&mut self.browser.folders_only, "Só pastas")
+                    .checkbox(&mut self.browser.folders_only, "Folders only")
                     .changed();
             }
             if self.browser.mode != Mode::Extensions {
-                ui.menu_button("Colunas", |ui| {
-                    ui.label(
-                        "Nome, tamanho, %, ficheiros, pastas e alteração estão sempre visíveis.",
-                    );
-                    ui.checkbox(&mut self.columns.accessed, "Último acesso");
-                    ui.checkbox(&mut self.columns.created, "Data de criação");
-                    ui.checkbox(&mut self.columns.attributes, "Atributos");
-                    ui.checkbox(&mut self.columns.path, "Caminho completo");
+                ui.menu_button("Columns", |ui| {
+                    ui.label("Name, size, %, files, folders and modified date are always visible.");
+                    ui.checkbox(&mut self.columns.accessed, "Last accessed");
+                    ui.checkbox(&mut self.columns.created, "Created date");
+                    ui.checkbox(&mut self.columns.attributes, "Attributes");
+                    ui.checkbox(&mut self.columns.path, "Full path");
                 });
             }
             egui::ComboBox::from_id_salt("units")
@@ -795,11 +813,11 @@ impl SpaceFinder {
                         ui.selectable_value(&mut self.unit, unit, unit.label());
                     }
                 });
-            ui.checkbox(&mut self.show_map, "Mapa");
-            ui.checkbox(&mut self.show_details, "Propriedades");
+            ui.checkbox(&mut self.show_map, "Treemap");
+            ui.checkbox(&mut self.show_details, "Properties");
             if let Some(ext) = self.browser.extension.clone() {
-                ui.label(RichText::new(format!("Extensão: {ext}")).color(ACCENT));
-                if ui.small_button("Remover filtro").clicked() {
+                ui.label(RichText::new(format!("Extension: {ext}")).color(ACCENT));
+                if ui.small_button("Remove filter").clicked() {
                     self.browser.extension = None;
                     self.refresh();
                 }
@@ -857,10 +875,10 @@ impl eframe::App for SpaceFinder {
                     } else if self.events.is_some() {
                         self.progress.current.clone()
                     } else if self.analysis.is_some() {
-                        "A preparar recomendações a partir dos metadados…".into()
+                        "Preparing recommendations from metadata…".into()
                     } else {
                         format!(
-                            "{} ficheiros · {} pastas · {:.2}s · dados locais",
+                            "{} files · {} folders · {:.2}s · local data",
                             count(self.progress.files),
                             count(self.progress.folders),
                             self.progress.seconds
@@ -873,7 +891,7 @@ impl eframe::App for SpaceFinder {
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if ui
                             .small_button(format!(
-                                "{} sem acesso · {} outros · {} ignorados",
+                                "{} access denied · {} other errors · {} skipped",
                                 self.progress.denied,
                                 self.progress.errors.saturating_sub(self.progress.denied),
                                 self.progress.skipped
@@ -929,7 +947,7 @@ impl eframe::App for SpaceFinder {
                             [(ui.available_width() - 72.0).max(80.0), 20.0],
                             egui::Label::new(RichText::new(notice).color(COLORS[3])).wrap(),
                         );
-                        if ui.small_button("Fechar").clicked() {
+                        if ui.small_button("Close").clicked() {
                             self.notice = None;
                         }
                     });
@@ -959,7 +977,7 @@ impl eframe::App for SpaceFinder {
                 let (name, _) = self.elevation_ready.take().unwrap();
                 if let Err(error) = spacefinder::actions::acknowledge_elevation_ready(&name) {
                     self.notice = Some(format!(
-                        "Não foi possível confirmar a abertura à janela anterior: {error}"
+                        "Could not confirm readiness to the previous window: {error}"
                     ));
                 }
             }

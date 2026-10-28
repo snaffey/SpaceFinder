@@ -1,80 +1,86 @@
-# Validação local — 24 de outubro de 2026
+# Local validation — October 24, 2026
 
-Compilação `release`, Windows x64, neste computador. Estes números são medições locais, não uma previsão para o disco inteiro nem uma comparação com TreeSize.
+`release` build, Windows x64, on this computer. These are local measurements, not a prediction for a whole drive or a comparison with TreeSize.
 
-## Abertura como administrador — correção de 25 de outubro de 2026
+## English interface and media — October 28, 2026
 
-- A janela original fecha automaticamente apenas após confirmação da nova instância elevada, enviada depois de desenhar um primeiro frame da interface. A nova janela recebe o mesmo caminho para reanalisar.
-- A confirmação utiliza um evento exclusivo para cada tentativa e é cruzada com o processo criado pelo Windows. Uma chamada de abertura bem-sucedida, por si só, não fecha a janela original.
-- Cancelamento do pedido de administrador, falha de abertura, saída prematura ou ausência de confirmação mantêm a janela original. A espera corre no worker, com timeout após a criação do processo, sem bloquear a interface.
-- **30 testes aprovados, 2 fixtures de integração ignoradas por omissão.** Os testes novos cobrem confirmação com processo vivo, saída sem confirmação, timeout sem terminar o processo e recusa de confirmação por um processo sem privilégios. Os subprocessos de teste não pedem elevação nem acionam o UAC. Clippy sem avisos e formatação aprovados.
-- A aprovação real do UAC não foi automatizada.
-- Executável portátil atualizado e verificado por hash contra a compilação `release`. Como a janela já aberta estava em modo administrador, foi conservada; a versão anterior em execução ficou guardada em `target/` durante a substituição do ficheiro portátil.
+- Translated the application interface, recommendation evidence/cautions, file-action errors, CLI output and build messages into English.
+- Preserved Portuguese folder-name aliases in location detection and Unicode test fixtures; these are input compatibility and test coverage, not untranslated UI.
+- Formatting and Clippy passed without warnings. **30 tests passed; 2 integration fixtures were ignored by default.** The test assertions were updated to match English messages.
+- Rebuilt the portable executables. Screenshots and demonstration media use the English application and synthetic files, not personal file listings or performance benchmarks.
 
-## Atualização 0.4 — 25 de outubro de 2026
+## Administrator launch — October 25, 2026 fix
 
-- **26 testes aprovados**, mais um teste de integração de Reciclagem ignorado por omissão. As novas regras cobrem nomes de pasta enganadores, manifestos e marcadores de compilação, ficheiros inesperados em pastas geradas, sistema, cloud, metadados parciais, datas desconhecidas/futuras, não sobreposição e um limite de 200 resultados com 10 000 candidatos. Formatação e Clippy sem avisos aprovados.
-- Os dois testes novos de junctions recusam um redirecionamento para dentro da mesma raiz e a substituição posterior de um ancestral. Nenhum deles recicla ficheiros; usam apenas fixtures geradas para o teste.
-- UI verificado na janela nativa: navegação lateral, resumo, recomendações, tipos de ficheiro e o fluxo **Rever na árvore**. As recomendações não executam nem eliminam o item.
-- No próprio projeto, o motor identificou `target/` pelos marcadores Cargo e pelo manifesto, com 2 505 303 074 bytes observados na medição inicial da versão. A sugestão explica que é necessário poder recompilar, fechar builds e confirmar que não foram guardados ficheiros manuais. Não foi efetuada limpeza.
-- Análise local de `C:\`, em modo normal, com 16 workers: **2 282 184 ficheiros**, **411 106 pastas**, **941 239 867 991 bytes lógicos medidos**, **25,40 s** de scanner e **25,74 s** para o processo completo com recomendações e leitura do JSON no PowerShell. Registou 478 acessos negados e 1 476 ligações ignoradas. A cache e mudanças no disco tornam estas medições variáveis; a cobertura é parcial.
-- Foram encontradas **53 sugestões**: 3 artefactos Cargo recriáveis sujeitos a revisão (14 460 821 485 bytes), 2 localizações a gerir pelo Windows e 48 ficheiros pessoais para inspeção (38 822 803 763 bytes). Os valores não são uma promessa de espaço físico recuperável e não houve dupla contagem nos totais.
-- A análise de recomendações corre separadamente da interface, com um relatório vinculado ao mesmo `Arc<Scan>`; um relatório tardio de uma análise anterior não é aplicado.
-- Uma verificação independente dos 53 caminhos recomendados confirmou zero sobreposições entre ancestrais e descendentes. Todas as ações dos cartões são de inspeção ou abertura de ferramentas do Windows; nenhuma executa limpeza.
-- O executável portátil final corresponde à compilação `release`. A CLI final confirmou os 15 ficheiros e 210 265 bytes de `src/` com uma enumeração independente, sem recomendações artificiais para a pasta de fontes.
-- Na verificação final da janela, a reanálise de `C:\` demorou 12,34 s e voltou a apresentar 53 sugestões e 13,47 GiB lógicos em artefactos recriáveis sujeitos a revisão. A diferença face à execução anterior ilustra o efeito da cache/estado do disco. A app ficou aberta na página Recomendações; nenhuma limpeza foi executada.
+- The original window closes automatically only after the new elevated instance confirms readiness, sent after drawing its first UI frame. The new window receives the same path to rescan.
+- Confirmation uses an event unique to each attempt and is checked against the process created by Windows. A successful launch call alone does not close the original window.
+- Canceling the administrator request, launch failure, early exit or missing confirmation keeps the original window open. Waiting runs on a worker, with a timeout after process creation, without blocking the UI.
+- **30 tests passed, 2 integration fixtures ignored by default.** New tests cover readiness with a live process, exit without readiness, timeout without terminating the process and rejection of readiness from an unprivileged process. Test subprocesses do not request elevation or trigger UAC. Clippy and formatting passed.
+- Actual UAC approval was not automated.
+- The portable executable was updated and its hash checked against the `release` build. The existing window was already elevated and was preserved; the previous running version was kept in `target/` while replacing the portable file.
 
-## Atualização 0.3 — 25 de outubro de 2026
+## Version 0.4 — October 25, 2026
 
-- **15 testes automáticos aprovados**, mais o teste nativo de Reciclagem executado separadamente. Clippy sem avisos e formatação aprovados. O teste de Reciclagem fica ignorado por omissão para que `cargo test` não mova ficheiros sem intenção explícita.
-- O teste nativo enviou apenas uma pasta descartável gerada em `target/`, com um ficheiro de teste, para a Reciclagem. Foram também testadas as recusas da raiz da análise, de caminhos exteriores e de ficheiros alterados desde a preparação.
-- A confirmação visual de uma pasta exige escrever o nome antes de ativar o botão. Na verificação da interface foi usado **Cancelar**, e a pasta de preview permaneceu intacta. A pasta de preview foi depois removida sem recursão, com o caminho e conteúdo verificados.
-- Menu de contexto, seleção por botão direito, ordenação clicando na área do cabeçalho e janela nativa de propriedades verificados. A janela de propriedades foi fechada sem alterações.
-- A CLI em `src/` devolveu **13 ficheiros**, **138 235 bytes**, zero erros e zero entradas incompletas; totais confirmados por uma enumeração independente.
-- A versão final analisou `C:\` em modo normal: **2 281 328 ficheiros**, **410 985 pastas**, **940 869 640 838 bytes lógicos medidos**, em **10,14 s**. Registou **477 pastas sem permissão**, **zero outros erros** e **1 476 ligações ignoradas**. São resultados parciais, explicitamente assinalados na interface e nos ramos afetados.
-- Janela **Cobertura e permissões** verificada com os erros reais de `C:\`, incluindo `PerfLogs`, `System Volume Information` e `ProgramData`. A explicação indica que administrador é opcional, pode aumentar a cobertura e não garante acesso a todas as pastas.
-- O botão de elevação não foi acionado automaticamente; não foram alteradas permissões do Windows. A construção dos argumentos com espaços e barras finais tem um teste dedicado.
-- O executável portátil corresponde à compilação `release` da versão 0.3 e ficou aberto na análise do disco C.
+- **26 tests passed**, plus a Recycle Bin integration test ignored by default. New rules cover misleading folder names, manifests and build markers, unexpected files in generated folders, system/cloud locations, partial metadata, unknown/future dates, non-overlap and a 200-result limit with 10,000 candidates. Formatting and Clippy passed without warnings.
+- Two new junction tests reject redirection within the same root and subsequent replacement of an ancestor. Neither recycles files; they use generated test fixtures only.
+- The native window was checked: sidebar navigation, summary, recommendations, file types and **Review in tree**. Recommendations do not run or delete the item.
+- In this project, the engine identified `target/` using Cargo markers and the manifest, with 2,505,303,074 observed bytes in the initial measurement. The suggestion explains that rebuilding must be possible, builds must be closed and manual files must be ruled out. No cleanup was performed.
+- Local `C:\` scan in standard mode with 16 workers: **2,282,184 files**, **411,106 folders**, **941,239,867,991 logical bytes measured**, **25.40 s** scanner time and **25.74 s** for the complete process including recommendations and reading JSON in PowerShell. It recorded 478 access-denied issues and 1,476 skipped links. Cache and disk changes make these measurements variable; coverage is partial.
+- **53 suggestions** were found: 3 recreatable Cargo artifacts requiring review (14,460,821,485 bytes), 2 Windows-managed locations and 48 personal files for inspection (38,822,803,763 bytes). These figures do not promise recoverable physical space and totals did not double-count items.
+- Recommendation analysis runs separately from the UI, with a report bound to the same `Arc<Scan>`; a late report from an earlier scan is not applied.
+- An independent check of the 53 recommended paths confirmed no ancestor/descendant overlaps. All card actions inspect items or open Windows tools; none performs cleanup.
+- The final portable executable matches the `release` build. The final CLI confirmed 15 files and 210,265 bytes in `src/` against an independent enumeration, with no artificial recommendations for the source folder.
+- In the final window check, rescanning `C:\` took 12.34 s and again showed 53 suggestions and 13.47 GiB logical size in recreatable artifacts requiring review. The difference illustrates cache/disk-state effects. The app was left open on Recommendations; no cleanup was performed.
 
-## Atualização 0.2 — 25 de outubro de 2026
+## Version 0.3 — October 25, 2026
 
-- **12 testes aprovados**, incluindo conversão de FILETIME, datas nativas e agregação de datas por ramo, expansão/recolha da árvore, invalidação da ordenação em cache, pesquisa com antepassados e filtros por extensão. Formatação e Clippy sem avisos também passaram.
-- Árvore expansível, atualização de propriedades/mapa ao selecionar uma pasta, ordenação por nome e vista por extensões verificadas na janela nativa. O duplo clique em `.exe` abriu os 102 ficheiros correspondentes da análise de teste.
-- CSV exportado pelo diálogo nativo e relido independentemente: **4 754 nós**, incluindo **4 084 ficheiros**, **1 771 391 798 bytes**. A soma dos ficheiros coincidiu com a raiz. As nove colunas estavam presentes, incluindo datas Unix e atributos; todos os ficheiros tinham data de modificação.
-- A CLI portátil analisou os **10 ficheiros** de `src/`, totalizando **98 323 bytes**. Uma enumeração independente confirmou contagem, tamanho e data de modificação de uma entrada.
-- Nova medição na pasta de projetos, com os detalhes ativos e 16 workers: **235 213 ficheiros**, **25 013 subpastas**, **19 074 732 179 bytes**, em **1,417 s**; **zero erros** e **4 reparse points ignorados**. A cache e as alterações na pasta impedem uma comparação direta com a medição inicial abaixo.
-- Executáveis finais da versão 0.2 em `dist/SpaceFinder.exe` e `dist/SpaceFinder-CLI.exe`.
-- Corrigida a captura de cliques pelos textos das células. O clique direto no nome seleciona agora a linha e atualiza de imediato o painel de propriedades e o mapa; expansão por duplo clique também verificada. Os 12 testes e o Clippy voltaram a passar após a correção.
+- **15 automated tests passed**, plus the native Recycle Bin test run separately. Clippy and formatting passed. The Recycle Bin test is ignored by default so `cargo test` does not move files without explicit intent.
+- The native test moved only a disposable folder generated in `target/`, containing one test file, to the Recycle Bin. Rejection of the scan root, outside paths and files changed after preparation was also tested.
+- Folder confirmation requires typing its name before the button becomes available. **Cancel** was used during UI verification, leaving the preview folder intact. The preview folder was later removed without recursion after verifying its path and contents.
+- Context menu, right-click selection, sorting through header clicks and native properties were verified. The properties window was closed without changes.
+- The CLI scan of `src/` returned **13 files**, **138,235 bytes**, zero errors and zero incomplete entries; totals were independently confirmed.
+- The final version scanned `C:\` in standard mode: **2,281,328 files**, **410,985 folders**, **940,869,640,838 logical bytes measured**, in **10.14 s**. It recorded **477 access-denied folders**, **zero other errors** and **1,476 skipped links**. These are partial results, explicitly marked in the UI and affected branches.
+- **Coverage and permissions** was checked using real `C:\` issues, including `PerfLogs`, `System Volume Information` and `ProgramData`. Its explanation states that administrator is optional, may improve coverage and does not guarantee access to every folder.
+- The elevation button was not triggered automatically; Windows permissions were not changed. Argument construction with spaces and trailing backslashes has a dedicated test.
+- The portable executable matched the version 0.3 `release` build and was left open on the C drive scan.
 
-As secções seguintes conservam as medições da versão inicial.
+## Version 0.2 — October 25, 2026
 
-## Pasta de projetos
+- **12 tests passed**, including FILETIME conversion, native dates and branch-date aggregation, tree expansion/collapse, cached-sort invalidation, search with ancestors and extension filters. Formatting and Clippy also passed.
+- Expandable tree, properties/treemap updates on folder selection, name sorting and extension view were checked in the native window. Double-clicking `.exe` opened the 102 matching files in the test scan.
+- CSV exported using the native dialog and read independently: **4,754 nodes**, including **4,084 files**, **1,771,391,798 bytes**. The file sum matched the root. All nine columns were present, including Unix dates and attributes; every file had a modified date.
+- The portable CLI scanned the **10 files** in `src/`, totaling **98,323 bytes**. An independent enumeration confirmed the count, size and modified date of one entry.
+- New project-folder measurement with details enabled and 16 workers: **235,213 files**, **25,013 subfolders**, **19,074,732,179 bytes**, in **1.417 s**; **zero errors** and **4 skipped reparse points**. Cache and folder changes prevent direct comparison with the initial measurement below.
+- Final version 0.2 executables in `dist/SpaceFinder.exe` and `dist/SpaceFinder-CLI.exe`.
+- Fixed click interception by cell text. Clicking the name now selects the row and immediately updates properties and the treemap; double-click expansion was also verified. All 12 tests and Clippy passed again after the fix.
 
-Uma análise de `C:\Users\<utilizador>\Documents\Projs` (caminho anonimizado), com 16 workers:
+The following sections preserve the initial version's measurements.
 
-| Métrica | Resultado |
+## Project folder
+
+A scan of `C:\Users\<user>\Documents\Projs` (anonymized path) with 16 workers:
+
+| Metric | Result |
 | --- | ---: |
-| Ficheiros | 234 544 |
-| Subpastas | 24 947 |
-| Bytes lógicos | 18 869 397 446 |
-| Tempo do scanner, incluindo agregação | 3,872 s |
-| Erros de leitura | 0 |
-| Reparse points ignorados | 4 |
+| Files | 234,544 |
+| Subfolders | 24,947 |
+| Logical bytes | 18,869,397,446 |
+| Scanner time, including aggregation | 3.872 s |
+| Read errors | 0 |
+| Skipped reparse points | 4 |
 
-O disco, a cache do sistema e o antivírus influenciam estes resultados. A pasta pode mudar enquanto a análise corre.
+Disk, system cache and antivirus affect these results. The folder may change while scanning.
 
-## Verificação independente de totais
+## Independent total verification
 
-Na cache de fontes de Cargo (`C:\Users\<utilizador>\.cargo\registry\src`, caminho anonimizado), análises com 1, 4 e 16 workers produziram os mesmos **6 852 ficheiros**, **1 664 subpastas** e **158 349 421 bytes**. Uma enumeração independente com `Get-ChildItem -Recurse -File -Force` e `Measure-Object Length -Sum` confirmou exatamente a quantidade de ficheiros e os bytes.
+In the Cargo source cache (`C:\Users\<user>\.cargo\registry\src`, anonymized path), scans with 1, 4 and 16 workers produced the same **6,852 files**, **1,664 subfolders** and **158,349,421 bytes**. An independent enumeration using `Get-ChildItem -Recurse -File -Force` and `Measure-Object Length -Sum` confirmed the exact file count and byte total.
 
-Tempos das três execuções sequenciais: 0,167 s, 0,089 s e 0,070 s. A ordem e o aquecimento da cache impedem atribuir a diferença apenas ao paralelismo.
+Times for the three sequential runs: 0.167 s, 0.089 s and 0.070 s. Run order and cache warming prevent attributing the difference solely to parallelism.
 
-## Verificação funcional
+## Functional verification
 
-- `cargo test --all-targets`: 7 testes aprovados, cobrindo totais, Unicode, ocultos, pastas vazias, caminhos inválidos, ficheiros como raiz, lotes maiores que 1 024 entradas, cancelamento, backpressure, caminhos com mais de 260 caracteres e ciclos em junctions.
-- `cargo clippy --all-targets -- -D warnings`: aprovado.
-- `cargo fmt --check`: aprovado.
-- Build otimizada e executáveis portáteis gerados em `dist/`.
-- Interface aberta e inspecionada no Windows; vista dos maiores ficheiros verificada.
-- Exportação feita pelo diálogo nativo: o CSV continha 4 022 nós, incluindo 3 417 ficheiros. A soma independente dos tamanhos dos ficheiros (1 573 604 700 bytes) coincidia com o total da raiz exportada.
-
+- `cargo test --all-targets`: 7 tests passed, covering totals, Unicode, hidden files, empty folders, invalid paths, files as roots, batches larger than 1,024 entries, cancellation, backpressure, paths longer than 260 characters and junction cycles.
+- `cargo clippy --all-targets -- -D warnings`: passed.
+- `cargo fmt --check`: passed.
+- Optimized build and portable executables generated in `dist/`.
+- Interface opened and inspected on Windows; largest-files view checked.
+- Export through the native dialog: CSV contained 4,022 nodes, including 3,417 files. The independent sum of file sizes (1,573,604,700 bytes) matched the exported root total.
